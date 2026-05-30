@@ -12,7 +12,9 @@ public class TreeScatterTool : EditorWindow
 {
     public GameObject[] treePrefabs;
     public int treeCount = 60;
-    public float avoidCenterRadius = 14f;   // keep a clearing/trail in the middle
+    public float trailHalfWidth = 10f;      // half-width of the cleared trail corridor
+    public float trailCurveAmplitude = 28f; // how far the winding trail swings left/right
+    public float trailWaves = 1.5f;         // number of S-curves along the trail (more = curvier)
     public float maxSteepness = 35f;        // don't put trees on steep cliffs
     public Vector2 scaleRange = new Vector2(0.8f, 1.4f);
     public bool addColliders = true;        // so the player can't walk through trunks
@@ -47,7 +49,9 @@ public class TreeScatterTool : EditorWindow
         SerializedObject so = new SerializedObject(this);
         EditorGUILayout.PropertyField(so.FindProperty("treePrefabs"), true);
         treeCount = EditorGUILayout.IntSlider("Tree Count", treeCount, 1, 400);
-        avoidCenterRadius = EditorGUILayout.Slider("Clearing Radius (trail)", avoidCenterRadius, 0f, 60f);
+        trailHalfWidth = EditorGUILayout.Slider("Trail Half-Width", trailHalfWidth, 0f, 40f);
+        trailCurveAmplitude = EditorGUILayout.Slider("Trail Curviness (swing)", trailCurveAmplitude, 0f, 60f);
+        trailWaves = EditorGUILayout.Slider("Trail Waves (S-curves)", trailWaves, 0f, 4f);
         maxSteepness = EditorGUILayout.Slider("Max Slope (deg)", maxSteepness, 0f, 90f);
         scaleRange = EditorGUILayout.Vector2Field("Scale Range (min/max)", scaleRange);
         addColliders = EditorGUILayout.Toggle("Add Trunk Colliders", addColliders);
@@ -58,7 +62,7 @@ public class TreeScatterTool : EditorWindow
         if (GUILayout.Button("Clear Forest")) Clear();
 
         EditorGUILayout.HelpBox(
-            "Scatter adds trees under a 'Forest' object, leaving a clearing in the middle for the trail.\n" +
+            "Scatter adds trees under a 'Forest' object, leaving a north-south trail corridor clear.\n" +
             "Run it again to add more; use Clear Forest to start over.", MessageType.Info);
     }
 
@@ -84,6 +88,8 @@ public class TreeScatterTool : EditorWindow
         TerrainData td = terrain.terrainData;
         Vector3 tPos = terrain.transform.position;
         Vector3 center = tPos + new Vector3(td.size.x / 2f, 0f, td.size.z / 2f);
+        // The trail winds as a sine wave along Z; trailFreq gives 'trailWaves' full curves over the terrain length
+        float trailFreq = (td.size.z > 0.01f) ? (trailWaves * 2f * Mathf.PI / td.size.z) : 0f;
 
         GameObject forest = GameObject.Find(ForestRootName);
         if (forest == null)
@@ -105,9 +111,9 @@ public class TreeScatterTool : EditorWindow
             Vector3 worldPos = tPos + new Vector3(x, 0f, z);
             worldPos.y = terrain.SampleHeight(worldPos) + tPos.y;
 
-            // Keep the middle clear for the trail toward the light
-            Vector3 flat = new Vector3(worldPos.x, center.y, worldPos.z);
-            if (Vector3.Distance(flat, center) < avoidCenterRadius) continue;
+            // Keep a winding north-south corridor clear (the trail from the cabin to the light)
+            float trailX = center.x + trailCurveAmplitude * Mathf.Sin((worldPos.z - tPos.z) * trailFreq);
+            if (Mathf.Abs(worldPos.x - trailX) < trailHalfWidth) continue;
 
             // Skip steep slopes (GetSteepness wants normalized 0..1 coords)
             float steep = td.GetSteepness(x / td.size.x, z / td.size.z);
