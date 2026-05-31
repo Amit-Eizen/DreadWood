@@ -78,6 +78,10 @@ namespace StarterAssets
         [Tooltip("For locking the camera position on all axis")]
         public bool LockCameraPosition = false;
 
+        [Header("Combat")]
+        [Tooltip("Set by PlayerCombat — multiplies move speed during an attack (1 = normal). Rotation is unaffected.")]
+        public float combatSpeedMultiplier = 1f;
+
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -183,8 +187,20 @@ namespace StarterAssets
             // set sphere position, with offset
             Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset,
                 transform.position.z);
-            Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers,
+
+            // Gather everything the sphere overlaps, but IGNORE the player's own
+            // colliders (the CharacterController / body capsule move up with us when
+            // jumping). Without this, the check stays true mid-air and the player can
+            // keep jumping in the air.
+            Collider[] overlaps = Physics.OverlapSphere(spherePosition, GroundedRadius, GroundLayers,
                 QueryTriggerInteraction.Ignore);
+            Grounded = false;
+            foreach (Collider c in overlaps)
+            {
+                if (c.transform == transform || c.transform.IsChildOf(transform)) continue;
+                Grounded = true;   // a real, non-player collider -> we're on the ground
+                break;
+            }
 
             // update animator if using character
             if (_hasAnimator)
@@ -224,6 +240,9 @@ namespace StarterAssets
             // note: Vector2's == operator uses approximation so is not floating point error prone, and is cheaper than magnitude
             // if there is no input, set the target speed to 0
             if (_input.move == Vector2.zero) targetSpeed = 0.0f;
+
+            // slow movement while attacking — responsive but no big slide (rotation still works)
+            targetSpeed *= combatSpeedMultiplier;
 
             // a reference to the players current horizontal velocity
             float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
@@ -307,6 +326,10 @@ namespace StarterAssets
                 {
                     // the square root of H * -2 * G = how much velocity needed to reach desired height
                     _verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+
+                    // consume the jump so one press = one jump (prevents re-jumping /
+                    // "flying to the sky" if the grounded check stays true while rising)
+                    _input.jump = false;
 
                     // update animator if using character
                     if (_hasAnimator)

@@ -121,7 +121,7 @@ MonoBehaviour:
   sightBlockers:
     serializedVersion: 2
     m_Bits: 4294967295
-  moveSpeed: 3
+  moveSpeed: 2.5
   rotationSpeed: 6
   attackRange: 2
   attackDamage: 12
