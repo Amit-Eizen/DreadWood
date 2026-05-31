@@ -1,10 +1,12 @@
+using System.Collections;
 using UnityEngine;
 
 // Health for an enemy (trail zombie or the final boss).
 // - Boss: shows a big health bar across the TOP of the screen while alive;
 //   killing it wins the game.
 // - Zombie: shows a small health bar ABOVE ITS HEAD once it has been hit.
-// When HP hits 0 it dies (disables its AI + colliders, then is removed).
+// On every hit it FLASHES (so you clearly feel the strike land). When HP hits 0
+// it dies (disables its AI + colliders, plays the death anim, then is removed).
 public class EnemyHealth : MonoBehaviour
 {
     public int maxHP = 30;
@@ -17,31 +19,87 @@ public class EnemyHealth : MonoBehaviour
     [Header("Head bar (zombies)")]
     public float headHeight = 2.2f;   // how high above the pivot the bar floats
 
+    [Header("Hit feedback")]
+    public Color hitFlashColor = new Color(1f, 0.25f, 0.25f);
+    public float flashTime = 0.09f;
+    [Tooltip("Optional: a small backward nudge when hit (0 = none)")]
+    public float knockback = 0.12f;
+    [Tooltip("Optional: animator trigger to play a flinch — leave empty if the enemy has none")]
+    public string hitAnimTrigger = "";
+
     private int hp;
     private bool dead = false;
     private Camera cam;
+
+    private Renderer[] renderers;
+    private Color[] baseColors;
+    private bool flashing = false;
+    private Animator anim;
 
     void Awake()
     {
         hp = maxHP;
         cam = Camera.main;
+        anim = GetComponent<Animator>();
+
+        // cache renderers + their original colour so we can flash and restore
+        renderers = GetComponentsInChildren<Renderer>();
+        baseColors = new Color[renderers.Length];
+        for (int i = 0; i < renderers.Length; i++)
+            if (renderers[i].material.HasProperty("_Color"))
+                baseColors[i] = renderers[i].material.color;
     }
 
     public void TakeDamage(int dmg)
     {
         if (dead) return;
         hp = Mathf.Max(0, hp - dmg);
+
+        // FEEDBACK: flash + optional flinch + optional little knockback
+        if (gameObject.activeInHierarchy) StartCoroutine(Flash());
+        if (anim != null && !string.IsNullOrEmpty(hitAnimTrigger) && hp > 0) anim.SetTrigger(hitAnimTrigger);
+        if (knockback > 0f && hp > 0)
+        {
+            Vector3 back = -transform.forward * knockback;   // shove away from its facing
+            transform.position += new Vector3(back.x, 0f, back.z);
+        }
+
         if (hp <= 0) Die();
+    }
+
+    IEnumerator Flash()
+    {
+        if (flashing) yield break;
+        flashing = true;
+        SetColor(hitFlashColor);
+        yield return new WaitForSecondsRealtime(flashTime);
+        RestoreColors();
+        flashing = false;
+    }
+
+    void SetColor(Color c)
+    {
+        if (renderers == null) return;
+        foreach (Renderer r in renderers)
+            if (r != null && r.material.HasProperty("_Color")) r.material.color = c;
+    }
+
+    void RestoreColors()
+    {
+        if (renderers == null) return;
+        for (int i = 0; i < renderers.Length; i++)
+            if (renderers[i] != null && renderers[i].material.HasProperty("_Color"))
+                renderers[i].material.color = baseColors[i];
     }
 
     void Die()
     {
         dead = true;
+        RestoreColors();
         MutantAI ai = GetComponent<MutantAI>();
         if (ai != null) ai.enabled = false;
         foreach (Collider c in GetComponentsInChildren<Collider>()) c.enabled = false;
 
-        Animator anim = GetComponent<Animator>();
         if (anim != null) anim.SetTrigger("die");   // play the death animation
 
         if (isBoss && GameManager.Instance != null)
