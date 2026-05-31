@@ -1,21 +1,24 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using StarterAssets;
 
 // Melee combat for the player (Brute).
 //  - Left-click = a combo swing (cycles through Combo Triggers).
-//  - Sprint (Shift) + left-click = a running jump attack that LEAPS forward
-//    (driven in code, since Root Motion is off) and hits hard.
-//  - While swinging the player slows down (responsive, barely slides).
-//  - On a hit: brief hit-stop + optional sound + optional slash effect = "impact".
+//  - Sprint (Shift) + left-click = a running jump attack that LEAPS forward.
+//  - Each swing opens a HIT WINDOW that checks continuously, so a moving enemy
+//    still gets caught (no more "looked like a hit but missed").
+//  - On a hit: slash effect + optional sound + brief hit-stop = "impact".
 // Tag your attack states "Attack" in the Animator so the slow-down matches the swing.
 [RequireComponent(typeof(Animator))]
 public class PlayerCombat : MonoBehaviour
 {
     [Header("Hit area")]
-    public float range = 2.8f;
-    public float coneAngle = 100f;
+    public float range = 3.0f;
+    public float coneAngle = 120f;
+    [Tooltip("How long the swing stays 'live' after Hit Moment — catches moving enemies")]
+    public float hitWindow = 0.25f;
 
     [Header("Combo")]
     public int damage = 15;
@@ -25,21 +28,17 @@ public class PlayerCombat : MonoBehaviour
     public float cooldown = 0.45f;
     [Tooltip("Wait longer than this between clicks and the combo restarts at the first swing")]
     public float comboResetTime = 1.2f;
-    [Tooltip("Seconds into a swing before the hit lands")]
+    [Tooltip("Seconds into a swing before the hit window opens")]
     public float hitMoment = 0.25f;
 
     [Header("Running attack (Shift + click while moving)")]
     public bool useRunAttack = true;
     public string runAttackTrigger = "runAttack";
     public int runAttackDamage = 25;
-    [Tooltip("Seconds into the running attack before the hit lands")]
     public float runHitMoment = 0.45f;
-    [Tooltip("How far/fast the leap pushes forward")]
     public float runLeapSpeed = 7f;
-    [Tooltip("How long the forward leap lasts")]
     public float runLeapTime = 0.4f;
-    [Tooltip("Bigger hit area for the leaping strike")]
-    public float runRange = 3.4f;
+    public float runRange = 3.6f;
 
     [Header("Feel")]
     [Range(0f, 1f)] [Tooltip("Move speed kept during a normal swing (1 = full, 0 = frozen)")]
@@ -61,9 +60,6 @@ public class PlayerCombat : MonoBehaviour
     private CharacterController cc;
     private float lastAttack = -999f;
     private int comboStep = 0;
-    private int pendingDamage;
-    private float pendingRange;
-    private float swingUntil = 0f;
     private bool leaping = false;
 
     void Start()
@@ -82,14 +78,12 @@ public class PlayerCombat : MonoBehaviour
             return;
         }
 
-        // movement feel: the leap drives motion itself (freeze normal control);
-        // a normal swing just slows you; otherwise full speed.
         if (controller != null)
         {
             if (leaping) controller.combatSpeedMultiplier = 0f;
             else
             {
-                bool swinging = (animator != null && animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack")) || Time.time < swingUntil;
+                bool swinging = (animator != null && animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack")) || Time.time < lastAttack + cooldown;
                 controller.combatSpeedMultiplier = swinging ? attackMoveSlow : 1f;
             }
         }
@@ -104,28 +98,65 @@ public class PlayerCombat : MonoBehaviour
     void Swing()
     {
         lastAttack = Time.time;
-        swingUntil = Time.time + cooldown;
 
         bool running = useRunAttack && input != null && input.sprint && input.move != Vector2.zero;
 
         if (running)
         {
             if (animator != null) animator.SetTrigger(runAttackTrigger);
-            pendingDamage = runAttackDamage;
-            pendingRange = runRange;
             comboStep = 0;
-            StartCoroutine(RunLeap());                 // propel forward like the animation
-            Invoke(nameof(DealDamage), runHitMoment);
+            StartCoroutine(RunLeap());
+            StartCoroutine(HitWindow(runHitMoment, runAttackDamage, runRange));
         }
         else if (comboTriggers.Length > 0)
         {
             comboStep %= comboTriggers.Length;
             if (animator != null) animator.SetTrigger(comboTriggers[comboStep]);
-            pendingDamage = damage;
-            pendingRange = range;
             comboStep = (comboStep + 1) % comboTriggers.Length;
-            Invoke(nameof(DealDamage), hitMoment);
+            StartCoroutine(HitWindow(hitMoment, damage, range));
         }
+    }
+
+    // Opens a live window that keeps checking for enemies in front, so a moving
+    // target is still hit. Each enemy is damaged at most once per swing.
+    IEnumerator HitWindow(float delay, int dmg, float r)
+    {
+        yield return new WaitForSeconds(delay);
+
+        HashSet<EnemyHealth> alreadyHit = new HashSet<EnemyHealth>();
+        bool didHitStop = false;
+        float t = 0f;
+
+        while (t < hitWindow)
+        {
+            EnemyHealth[] enemies = Object.FindObjectsByType<EnemyHealth>();
+            foreach (EnemyHealth e in enemies)
+            {
+                if (e == null || alreadyHit.Contains(e)) continue;
+
+                Vector3 to = e.transform.position - transform.position;
+                to.y = 0f;
+                if (to.magnitude <= r && Vector3.Angle(transform.forward, to) <= coneAngle * 0.5f)
+                {
+                    e.TakeDamage(dmg);
+                    alreadyHit.Add(e);
+
+                    Vector3 point = e.transform.position + Vector3.up;
+                    SpawnSlash(point);
+                    if (hitSound != null) AudioSource.PlayClipAtPoint(hitSound, point, hitVolume);
+                    if (!didHitStop && hitStopDuration > 0f) { didHitStop = true; StartCoroutine(HitStop()); }
+                }
+            }
+            t += Time.deltaTime;
+            yield return null;
+        }
+    }
+
+    void SpawnSlash(Vector3 point)
+    {
+        if (hitEffect == null) return;
+        GameObject fx = Instantiate(hitEffect, point, Quaternion.LookRotation(transform.forward));
+        Destroy(fx, hitEffectLife);
     }
 
     // Drives the forward leap of the running attack (Root Motion is off, so we move it ourselves)
@@ -138,46 +169,12 @@ public class PlayerCombat : MonoBehaviour
         float t = 0f;
         while (t < runLeapTime)
         {
-            float speed = Mathf.Lerp(runLeapSpeed, 1f, t / runLeapTime);   // fast, then ease out
+            float speed = Mathf.Lerp(runLeapSpeed, 1f, t / runLeapTime);
             if (cc != null && cc.enabled) cc.Move(dir * speed * Time.deltaTime);
             t += Time.deltaTime;
             yield return null;
         }
         leaping = false;
-    }
-
-    void DealDamage()
-    {
-        bool hitSomething = false;
-        Vector3 hitPoint = transform.position + transform.forward * (pendingRange * 0.5f) + Vector3.up;
-
-        EnemyHealth[] enemies = Object.FindObjectsByType<EnemyHealth>();
-        foreach (EnemyHealth e in enemies)
-        {
-            Vector3 to = e.transform.position - transform.position;
-            to.y = 0f;
-            if (to.magnitude <= pendingRange && Vector3.Angle(transform.forward, to) <= coneAngle * 0.5f)
-            {
-                e.TakeDamage(pendingDamage);
-                hitSomething = true;
-                hitPoint = e.transform.position + Vector3.up;
-            }
-        }
-
-        if (hitSomething) ImpactFeedback(hitPoint);
-    }
-
-    void ImpactFeedback(Vector3 point)
-    {
-        if (hitSound != null) AudioSource.PlayClipAtPoint(hitSound, point, hitVolume);
-
-        if (hitEffect != null)
-        {
-            GameObject fx = Instantiate(hitEffect, point, Quaternion.LookRotation(transform.forward));
-            Destroy(fx, hitEffectLife);
-        }
-
-        if (hitStopDuration > 0f) StartCoroutine(HitStop());
     }
 
     IEnumerator HitStop()
