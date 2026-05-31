@@ -68,7 +68,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthPickup
   healAmount: 25
-  skipIfFull: 0
+  skipIfFull: 1
   pickupRadius: 2.5
   spinSpeed: 0
   bobHeight: 0

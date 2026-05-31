@@ -20,6 +20,11 @@ public class GameManager : MonoBehaviour
     private bool isLose = false;
     private float damageFlash = 0f;
 
+    // read by the menu (GameMenu draws the end screens; GameManager only tracks state)
+    public bool IsWin => isWin;
+    public bool IsLose => isLose;
+    public bool HasEnded => isWin || isLose;
+
     void Awake()
     {
         Instance = this;
@@ -115,20 +120,8 @@ public class GameManager : MonoBehaviour
             Shadowed(new Rect(Screen.width - w - 20f, 15f, w, 90f), "» " + objectiveText, ob, TextAnchor.UpperRight, new Color(0.8f, 0.95f, 1f));
         }
 
-        if (isWin || isLose)
-        {
-            GUI.color = new Color(0f, 0f, 0f, 0.6f);
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-
-            GUIStyle big = new GUIStyle(GUI.skin.label) { fontSize = 46, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-            big.normal.textColor = isWin ? new Color(0.6f, 1f, 0.6f) : new Color(1f, 0.5f, 0.5f);
-            GUI.Label(new Rect(0, Screen.height / 2f - 90f, Screen.width, 60f), isWin ? "YOU ESCAPED" : "YOU DIED", big);
-
-            GUIStyle btn = new GUIStyle(GUI.skin.button) { fontSize = 22, fontStyle = FontStyle.Bold };
-            if (GUI.Button(new Rect(Screen.width / 2f - 90f, Screen.height / 2f + 10f, 180f, 50f), "Restart", btn))
-                Restart();
-        }
+        // The win/lose SCREEN is drawn by GameMenu (RESTART/QUIT). GameManager only
+        // tracks the state + freezes the game here.
     }
 
     void Shadowed(Rect r, string text, GUIStyle style, TextAnchor anchor, Color color)
