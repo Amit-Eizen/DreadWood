@@ -44,7 +44,8 @@ public class EnemyHealth : MonoBehaviour
 
         if (hp > 0)
         {
-            if (anim != null && !string.IsNullOrEmpty(hitAnimTrigger)) anim.SetTrigger(hitAnimTrigger);
+            if (anim != null && !string.IsNullOrEmpty(hitAnimTrigger) && HasParam(anim, hitAnimTrigger))
+                anim.SetTrigger(hitAnimTrigger);
             if (knockback > 0f)
             {
                 Vector3 back = -transform.forward * knockback;   // shove away from its facing
@@ -62,12 +63,21 @@ public class EnemyHealth : MonoBehaviour
         if (ai != null) ai.enabled = false;
         foreach (Collider c in GetComponentsInChildren<Collider>()) c.enabled = false;
 
-        if (anim != null) anim.SetTrigger("die");   // play the death animation
+        // play the death animation only if this controller has a "die" trigger
+        // (the boss's MutantController doesn't — avoids a console warning)
+        if (anim != null && HasParam(anim, "die")) anim.SetTrigger("die");
 
         if (isBoss && GameManager.Instance != null)
             GameManager.Instance.Win();
 
         Destroy(gameObject, removeDelay);
+    }
+
+    static bool HasParam(Animator a, string param)
+    {
+        foreach (AnimatorControllerParameter p in a.parameters)
+            if (p.name == param) return true;
+        return false;
     }
 
     void OnGUI()
