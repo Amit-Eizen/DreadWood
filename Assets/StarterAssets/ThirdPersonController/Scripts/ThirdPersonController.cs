@@ -82,6 +82,9 @@ namespace StarterAssets
         [Tooltip("Set by PlayerCombat — multiplies move speed during an attack (1 = normal). Rotation is unaffected.")]
         public float combatSpeedMultiplier = 1f;
 
+        [Tooltip("Set by PlayerStealth — multiplies move speed while sneaking (1 = normal)")]
+        public float stealthSpeedMultiplier = 1f;
+
         // cinemachine
         private float _cinemachineTargetYaw;
         private float _cinemachineTargetPitch;
@@ -218,7 +221,7 @@ namespace StarterAssets
                 float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
 
                 _cinemachineTargetYaw += _input.look.x * deltaTimeMultiplier;
-                _cinemachineTargetPitch += _input.look.y * deltaTimeMultiplier;
+                _cinemachineTargetPitch -= _input.look.y * deltaTimeMultiplier;   // mouse up = look up (not inverted)
             }
 
             // clamp our rotations so our values are limited 360 degrees
@@ -243,6 +246,9 @@ namespace StarterAssets
 
             // slow movement while attacking — responsive but no big slide (rotation still works)
             targetSpeed *= combatSpeedMultiplier;
+
+            // slow movement while sneaking (Ctrl)
+            targetSpeed *= stealthSpeedMultiplier;
 
             // a reference to the players current horizontal velocity
             float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;

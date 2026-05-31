@@ -121,6 +121,7 @@ MonoBehaviour:
   sightBlockers:
     serializedVersion: 2
     m_Bits: 4294967295
+  stealthDetectionMultiplier: 0.35
   moveSpeed: 2.5
   rotationSpeed: 6
   attackRange: 2
@@ -144,8 +145,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74920b262e65f0c4c8def19a77644c4a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
-  maxHP: 50
+  maxHP: 45
   isBoss: 0
   removeDelay: 2
   bossName: THE CREATURE
   headHeight: 2.2
+  knockback: 0.12
+  hitAnimTrigger: 

@@ -19,6 +19,8 @@ public class MutantAI : MonoBehaviour
     public float visionAngle = 90f;
     public float eyeHeight = 1.6f;
     public LayerMask sightBlockers = ~0;
+    [Tooltip("Detection range is multiplied by this while the player sneaks (Ctrl)")]
+    public float stealthDetectionMultiplier = 0.35f;
 
     [Header("Chase / Attack")]
     public float moveSpeed = 2.5f;
@@ -35,6 +37,10 @@ public class MutantAI : MonoBehaviour
     public float wanderSpeed = 1f;         // slow zombie shuffle
     public Vector2 pauseRange = new Vector2(1.5f, 4f); // idle pauses between strolls
 
+    [Header("Boss mode")]
+    [Tooltip("Always aggressive: never wanders — chases & attacks the player the moment it's active. Use for the boss mutant.")]
+    public bool alwaysAggressive = false;
+
     private Animator animator;
     private float lastSeenTime = -999f;
     private float lastAttackTime = -999f;
@@ -47,11 +53,23 @@ public class MutantAI : MonoBehaviour
     private bool hasWanderTarget = false;
     private float pauseUntil = 0f;
 
+    // which animator params actually exist (the boss's MutantController lacks some) —
+    // checked so we never spam "parameter does not exist" warnings
+    private bool hasWander, hasChasing, hasAttack, hasDie;
+
     void Start()
     {
         animator = GetComponent<Animator>();
         ground = Terrain.activeTerrain;
         home = transform.position;
+
+        foreach (AnimatorControllerParameter p in animator.parameters)
+        {
+            if (p.name == "isWandering") hasWander = true;
+            else if (p.name == "isChasing") hasChasing = true;
+            else if (p.name == "attack") hasAttack = true;
+            else if (p.name == "die") hasDie = true;
+        }
 
         if (player == null)
         {
@@ -70,9 +88,17 @@ public class MutantAI : MonoBehaviour
             return;
         }
 
-        bool canSee = CanSeePlayer();
-        if (canSee) { alerted = true; lastSeenTime = Time.time; }
-        else if (alerted && Time.time - lastSeenTime > loseSightTime) alerted = false;
+        if (alwaysAggressive)
+        {
+            // boss: skip stealth/vision entirely — straight to the fight
+            alerted = true;
+        }
+        else
+        {
+            bool canSee = CanSeePlayer();
+            if (canSee) { alerted = true; lastSeenTime = Time.time; }
+            else if (alerted && Time.time - lastSeenTime > loseSightTime) alerted = false;
+        }
 
         if (alerted) ChaseAndAttack();
         else Wander();
@@ -85,7 +111,10 @@ public class MutantAI : MonoBehaviour
         Vector3 eye = transform.position + Vector3.up * eyeHeight;
         Vector3 toPlayer = (player.position + Vector3.up * 1f) - eye;
         float dist = toPlayer.magnitude;
-        if (dist > detectionRange) return false;
+
+        // sneaking (Ctrl) shrinks how far the enemy can notice the player
+        float effRange = PlayerStealth.IsStealthed ? detectionRange * stealthDetectionMultiplier : detectionRange;
+        if (dist > effRange) return false;
 
         float angle = Vector3.Angle(transform.forward, new Vector3(toPlayer.x, 0f, toPlayer.z));
         if (angle > visionAngle * 0.5f) return false;
@@ -166,15 +195,15 @@ public class MutantAI : MonoBehaviour
     // wandering = slow WALK, chasing = RUN; both false = Idle
     void SetGait(bool wandering, bool chasing)
     {
-        animator.SetBool("isWandering", wandering);
-        animator.SetBool("isChasing", chasing);
+        if (hasWander) animator.SetBool("isWandering", wandering);
+        if (hasChasing) animator.SetBool("isChasing", chasing);
     }
 
     void TryAttack()
     {
         if (Time.time - lastAttackTime < attackCooldown) return;
         lastAttackTime = Time.time;
-        animator.SetTrigger("attack");
+        if (hasAttack) animator.SetTrigger("attack");
         attackHoldUntil = Time.time + attackHold;
         Invoke(nameof(ApplyAttackDamage), damageDelay);
     }

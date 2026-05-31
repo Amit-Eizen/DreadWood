@@ -24,6 +24,13 @@ public class GameManager : MonoBehaviour
     {
         Instance = this;
         currentHP = maxHP;
+
+        // Unity REMEMBERS Time.timeScale across play sessions in the editor. If a
+        // previous run ended frozen (win/lose) or mid hit-stop, it would stay
+        // frozen forever. Force normal time at the start of every run.
+        Time.timeScale = 1f;
+        isWin = false;
+        isLose = false;
     }
 
     void Update()
@@ -34,6 +41,7 @@ public class GameManager : MonoBehaviour
     public void TakeDamage(int amount)
     {
         if (isWin || isLose) return;
+        if (PlayerDodge.IsDodging) return;   // i-frames: no damage mid-dodge
         currentHP = Mathf.Max(0, currentHP - amount);
         damageFlash = 0.4f;
         if (currentHP <= 0) Lose();
