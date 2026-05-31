@@ -552,6 +552,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ObjectiveLight
   boss: {fileID: 590762088}
   bossObjective: "It found you \u2014 DEFEAT IT!"
+  turnOffOnBoss:
+  - {fileID: 655701244}
+  turnOnOnBoss: []
 --- !u!65 &39994512
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -6004,8 +6007,6 @@ MonoBehaviour:
   removeDelay: 1.5
   bossName: THE CREATURE
   headHeight: 2.2
-  hitFlashColor: {r: 1, g: 0.25, b: 0.25, a: 1}
-  flashTime: 0.09
   knockback: 0.12
   hitAnimTrigger: 
 --- !u!114 &590762090
@@ -6027,6 +6028,7 @@ MonoBehaviour:
   sightBlockers:
     serializedVersion: 2
     m_Bits: 4294967295
+  stealthDetectionMultiplier: 0.35
   moveSpeed: 3.2
   rotationSpeed: 6
   attackRange: 2
@@ -6038,6 +6040,7 @@ MonoBehaviour:
   wanderRadius: 12
   wanderSpeed: 1
   pauseRange: {x: 1.5, y: 4}
+  alwaysAggressive: 1
 --- !u!136 &590762091
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -13925,6 +13928,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b6f2bfe110eb4714d96b80f41dc426b0, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1325254436}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b6f2bfe110eb4714d96b80f41dc426b0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1325254442}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b6f2bfe110eb4714d96b80f41dc426b0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1325254443}
   m_SourcePrefab: {fileID: 100100000, guid: b6f2bfe110eb4714d96b80f41dc426b0, type: 3}
 --- !u!1 &1325254434 stripped
 GameObject:
@@ -13950,7 +13959,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   range: 2.8
   coneAngle: 100
-  damage: 15
+  hitWindow: 0.25
+  damage: 30
   comboTriggers:
   - attack1
   - attack3
@@ -13959,7 +13969,7 @@ MonoBehaviour:
   hitMoment: 0.6
   useRunAttack: 1
   runAttackTrigger: runAttack
-  runAttackDamage: 25
+  runAttackDamage: 35
   runHitMoment: 0.45
   runLeapSpeed: 7
   runLeapTime: 0.4
@@ -14038,6 +14048,7 @@ MonoBehaviour:
   CameraAngleOverride: 0
   LockCameraPosition: 0
   combatSpeedMultiplier: 1
+  stealthSpeedMultiplier: 1
 --- !u!114 &1325254439
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14115,6 +14126,39 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1325254442
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1325254434}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6719bf122acfc0144a1c4bccfa3b0098, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStealth
+  stealthMoveSpeed: 0.5
+  crouchBool: isCrouching
+  showIndicator: 1
+--- !u!114 &1325254443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1325254434}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52010a95773020c4aab80add4e4f0a32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDodge
+  dodgeSpeed: 9
+  dodgeTime: 0.28
+  cooldown: 0.7
+  invincibleWhileDodging: 1
+  useSpace: 1
+  useRightMouse: 1
 --- !u!1001 &1329392177
 PrefabInstance:
   m_ObjectHideFlags: 0

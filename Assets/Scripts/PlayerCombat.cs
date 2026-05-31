@@ -179,8 +179,17 @@ public class PlayerCombat : MonoBehaviour
 
     IEnumerator HitStop()
     {
+        // never hit-stop once the game is over (would un-freeze the win/lose screen)
+        if (GameManager.Instance != null && (GameManager.Instance.currentHP <= 0)) yield break;
+
         Time.timeScale = hitStopScale;
         yield return new WaitForSecondsRealtime(hitStopDuration);
-        Time.timeScale = 1f;
+        if (Time.timeScale != 0f) Time.timeScale = 1f;   // don't override a real freeze (win/lose)
+    }
+
+    // safety net: if this object is disabled mid hit-stop, restore normal time
+    void OnDisable()
+    {
+        if (Time.timeScale > 0f && Time.timeScale < 1f) Time.timeScale = 1f;
     }
 }
