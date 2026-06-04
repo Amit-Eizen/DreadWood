@@ -65,3 +65,5 @@ git clone https://github.com/Amit-Eizen/DreadWood.git
 ---
 
 *A student game project. Made with Unity.* 🎃
+
+<!-- DreadWood — third-person horror-survival in Unity 6 -->
