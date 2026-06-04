@@ -78,6 +78,9 @@ namespace StarterAssets
         [Tooltip("For locking the camera position on all axis")]
         public bool LockCameraPosition = false;
 
+        [Tooltip("Mouse look sensitivity (1 = default; raise for a faster camera)")]
+        public float LookSensitivity = 1.0f;
+
         [Header("Combat")]
         [Tooltip("Set by PlayerCombat — multiplies move speed during an attack (1 = normal). Rotation is unaffected.")]
         public float combatSpeedMultiplier = 1f;
@@ -219,6 +222,7 @@ namespace StarterAssets
             {
                 //Don't multiply mouse input by Time.deltaTime;
                 float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
+                deltaTimeMultiplier *= LookSensitivity;   // user-tunable mouse speed
 
                 _cinemachineTargetYaw += _input.look.x * deltaTimeMultiplier;
                 _cinemachineTargetPitch -= _input.look.y * deltaTimeMultiplier;   // mouse up = look up (not inverted)
