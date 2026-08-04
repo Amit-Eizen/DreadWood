@@ -14,12 +14,20 @@ public class CabinBuilder : EditorWindow
     public Vector2 groundPosition = new Vector2(0f, -80f); // world X,Z (south start)
     public float interiorWidth = 6f;    // along X
     public float interiorDepth = 7f;    // along Z
-    public float wallHeight = 3f;
+    public float floorHeight = 3f;       // height of ONE floor
     public float wallThickness = 0.2f;
     public float doorWidth = 1.6f;
     public float doorHeight = 2.3f;
     public float roofRise = 1.8f;
     public bool placePlayerInside = true;
+
+    [Header("Upper floor")]
+    public int floors = 2;
+    public float stairWidth = 1.2f;
+    // The player climbs steps by stepping over them, so a step must never be taller than the
+    // CharacterController's Step Offset (0.3 on the Starter Assets player) or he gets stuck.
+    public float maxStepHeight = 0.22f;
+    public float stepDepth = 0.3f;
 
     const string CabinName = "Cabin";
 
@@ -34,11 +42,17 @@ public class CabinBuilder : EditorWindow
         groundPosition = EditorGUILayout.Vector2Field("Ground Position (X, Z)", groundPosition);
         interiorWidth = EditorGUILayout.Slider("Interior Width", interiorWidth, 3f, 12f);
         interiorDepth = EditorGUILayout.Slider("Interior Depth", interiorDepth, 3f, 14f);
-        wallHeight = EditorGUILayout.Slider("Wall Height", wallHeight, 2.2f, 5f);
+        floorHeight = EditorGUILayout.Slider("Floor Height", floorHeight, 2.2f, 5f);
         doorWidth = EditorGUILayout.Slider("Door Width", doorWidth, 1f, 3f);
-        doorHeight = EditorGUILayout.Slider("Door Height", doorHeight, 1.8f, wallHeight);
+        doorHeight = EditorGUILayout.Slider("Door Height", doorHeight, 1.8f, floorHeight);
         roofRise = EditorGUILayout.Slider("Roof Rise (peak)", roofRise, 0.5f, 4f);
         placePlayerInside = EditorGUILayout.Toggle("Place Player Inside", placePlayerInside);
+
+        EditorGUILayout.Space();
+        floors = EditorGUILayout.IntSlider("Floors", floors, 1, 3);
+        stairWidth = EditorGUILayout.Slider("Stair Width", stairWidth, 0.9f, 2.5f);
+        maxStepHeight = EditorGUILayout.Slider("Max Step Height", maxStepHeight, 0.12f, 0.28f);
+        stepDepth = EditorGUILayout.Slider("Step Depth", stepDepth, 0.22f, 0.45f);
 
         EditorGUILayout.Space();
         if (GUILayout.Button("Build Cabin", GUILayout.Height(30))) Build();
@@ -46,7 +60,13 @@ public class CabinBuilder : EditorWindow
 
         EditorGUILayout.HelpBox(
             "Builds a 'Cabin' object at the ground position (snapped to terrain height).\n" +
-            "The doorway faces north (+Z) toward the trail and light. Re-build to update.",
+            "The doorway faces north (+Z) toward the trail and light.\n\n" +
+            "With Floors = 2 it also builds a stairwell against the right wall and a floor " +
+            "above with a hole to climb through.\n\n" +
+            "Build REPLACES the existing cabin, so set the sliders to match what is in the " +
+            "scene first (it was built with Floor Height 4 and Door Height 3).\n" +
+            "If the player cannot climb the stairs, lower Max Step Height — a step must be " +
+            "shorter than the player's CharacterController Step Offset.",
             MessageType.Info);
     }
 
@@ -73,26 +93,27 @@ public class CabinBuilder : EditorWindow
         Material mattress = GetMat("M_Mattress", new Color(0.78f, 0.74f, 0.66f));
         Material pillow = GetMat("M_Pillow", new Color(0.90f, 0.90f, 0.88f));
 
-        float W = interiorWidth, D = interiorDepth, H = wallHeight, T = wallThickness;
+        float W = interiorWidth, D = interiorDepth, H = floorHeight, T = wallThickness;
         float Wt = W + 2f * T;   // outer width
         float Dt = D + 2f * T;   // outer depth
+        float totalH = H * Mathf.Max(1, floors);   // outer walls run the full height of the house
 
         // Floor (top surface at local y = 0)
         Box(cabin, "Floor", new Vector3(0f, -0.1f, 0f), new Vector3(Wt, 0.2f, Dt), Quaternion.identity, wood);
 
         // Back wall (-Z)
-        Box(cabin, "Wall_Back", new Vector3(0f, H / 2f, -(D / 2f + T / 2f)), new Vector3(Wt, H, T), Quaternion.identity, wood);
+        Box(cabin, "Wall_Back", new Vector3(0f, totalH / 2f, -(D / 2f + T / 2f)), new Vector3(Wt, totalH, T), Quaternion.identity, wood);
         // Left wall (-X)
-        Box(cabin, "Wall_Left", new Vector3(-(W / 2f + T / 2f), H / 2f, 0f), new Vector3(T, H, D), Quaternion.identity, wood);
+        Box(cabin, "Wall_Left", new Vector3(-(W / 2f + T / 2f), totalH / 2f, 0f), new Vector3(T, totalH, D), Quaternion.identity, wood);
         // Right wall (+X)
-        Box(cabin, "Wall_Right", new Vector3(W / 2f + T / 2f, H / 2f, 0f), new Vector3(T, H, D), Quaternion.identity, wood);
+        Box(cabin, "Wall_Right", new Vector3(W / 2f + T / 2f, totalH / 2f, 0f), new Vector3(T, totalH, D), Quaternion.identity, wood);
 
         // Front wall (+Z) WITH a doorway: two side segments + a lintel above the door
         float frontZ = D / 2f + T / 2f;
         float sideSegW = (Wt - doorWidth) / 2f;
-        Box(cabin, "Wall_Front_L", new Vector3(-(doorWidth / 2f + sideSegW / 2f), H / 2f, frontZ), new Vector3(sideSegW, H, T), Quaternion.identity, wood);
-        Box(cabin, "Wall_Front_R", new Vector3(doorWidth / 2f + sideSegW / 2f, H / 2f, frontZ), new Vector3(sideSegW, H, T), Quaternion.identity, wood);
-        float lintelH = H - doorHeight;
+        Box(cabin, "Wall_Front_L", new Vector3(-(doorWidth / 2f + sideSegW / 2f), totalH / 2f, frontZ), new Vector3(sideSegW, totalH, T), Quaternion.identity, wood);
+        Box(cabin, "Wall_Front_R", new Vector3(doorWidth / 2f + sideSegW / 2f, totalH / 2f, frontZ), new Vector3(sideSegW, totalH, T), Quaternion.identity, wood);
+        float lintelH = totalH - doorHeight;
         if (lintelH > 0.01f)
             Box(cabin, "Wall_Front_Lintel", new Vector3(0f, doorHeight + lintelH / 2f, frontZ), new Vector3(doorWidth, lintelH, T), Quaternion.identity, wood);
 
@@ -112,23 +133,59 @@ public class CabinBuilder : EditorWindow
         // keep the panel's BoxCollider so a shut door physically blocks the doorway
         hinge.AddComponent<DoorController>(); // press Y to open/close when the player is near
 
+        // ---- Upper floor ----
+        // The stairs hug the right (+X) wall and climb from the back of the room forwards.
+        // The floor above is built as slabs AROUND the stairwell, the same way the front
+        // wall is built around the doorway, so there is a real hole to walk up through.
+        if (floors > 1)
+        {
+            int stepCount = Mathf.Max(3, Mathf.CeilToInt(H / maxStepHeight));
+            float stepH = H / stepCount;                    // exact, so the last step meets the floor
+            float stepD = Mathf.Min(stepDepth, (D - 0.4f) / stepCount);   // keep the run inside the room
+
+            float stairMinX = W / 2f - stairWidth;
+            float stairStartZ = -D / 2f + 0.2f;
+            float stairEndZ = stairStartZ + stepCount * stepD;
+
+            for (int i = 0; i < stepCount; i++)
+            {
+                float z0 = stairStartZ + i * stepD;
+                BoxBetween(cabin, "Step_" + (i + 1),
+                    new Vector3(stairMinX, 0f, z0),
+                    new Vector3(W / 2f, (i + 1) * stepH, z0 + stepD), wood);
+            }
+
+            // Floor of the level above — its top surface sits exactly at y = H.
+            float slabBottom = H - 0.2f;
+            BoxBetween(cabin, "Floor2_Left",
+                new Vector3(-Wt / 2f, slabBottom, -Dt / 2f), new Vector3(stairMinX, H, Dt / 2f), wood);
+            BoxBetween(cabin, "Floor2_Back",
+                new Vector3(stairMinX, slabBottom, -Dt / 2f), new Vector3(Wt / 2f, H, stairStartZ), wood);
+            if (Dt / 2f - stairEndZ > 0.05f)
+                BoxBetween(cabin, "Floor2_Front",
+                    new Vector3(stairMinX, slabBottom, stairEndZ), new Vector3(Wt / 2f, H, Dt / 2f), wood);
+        }
+
         // Gable roof: two sloped boxes meeting at a ridge running along Z
         float halfW = Wt / 2f;
         float angleDeg = Mathf.Atan2(roofRise, halfW) * Mathf.Rad2Deg;
         float slopeLen = Mathf.Sqrt(halfW * halfW + roofRise * roofRise) + 0.5f; // +overlap at ridge/eave
         float overhang = 0.5f;
         Vector3 roofSize = new Vector3(slopeLen, 0.15f, Dt + 2f * overhang);
-        Box(cabin, "Roof_L", new Vector3(-halfW / 2f, H + roofRise / 2f, 0f), roofSize, Quaternion.Euler(0f, 0f, angleDeg), roofMat);
-        Box(cabin, "Roof_R", new Vector3(halfW / 2f, H + roofRise / 2f, 0f), roofSize, Quaternion.Euler(0f, 0f, -angleDeg), roofMat);
+        Box(cabin, "Roof_L", new Vector3(-halfW / 2f, totalH + roofRise / 2f, 0f), roofSize, Quaternion.Euler(0f, 0f, angleDeg), roofMat);
+        Box(cabin, "Roof_R", new Vector3(halfW / 2f, totalH + roofRise / 2f, 0f), roofSize, Quaternion.Euler(0f, 0f, -angleDeg), roofMat);
 
-        // Bed in the back-left corner
+        // Bed in the back-left corner, on the TOP floor — the player wakes up there and has
+        // to come down the stairs. The stairs are on the +X side, so they never clash.
+        float bedFloorY = (floors > 1) ? H : 0f;
         float bedX = -(W / 2f - 0.7f);
         float bedZ = -(D / 2f - 1.2f);
-        Box(cabin, "Bed_Frame", new Vector3(bedX, 0.25f, bedZ), new Vector3(1.3f, 0.5f, 2.2f), Quaternion.identity, bedFrame);
-        Box(cabin, "Bed_Mattress", new Vector3(bedX, 0.62f, bedZ), new Vector3(1.2f, 0.25f, 2.0f), Quaternion.identity, mattress);
-        Box(cabin, "Bed_Pillow", new Vector3(bedX, 0.78f, bedZ - 0.7f), new Vector3(1.0f, 0.18f, 0.5f), Quaternion.identity, pillow);
+        Box(cabin, "Bed_Frame", new Vector3(bedX, bedFloorY + 0.25f, bedZ), new Vector3(1.3f, 0.5f, 2.2f), Quaternion.identity, bedFrame);
+        Box(cabin, "Bed_Mattress", new Vector3(bedX, bedFloorY + 0.62f, bedZ), new Vector3(1.2f, 0.25f, 2.0f), Quaternion.identity, mattress);
+        Box(cabin, "Bed_Pillow", new Vector3(bedX, bedFloorY + 0.78f, bedZ - 0.7f), new Vector3(1.0f, 0.18f, 0.5f), Quaternion.identity, pillow);
 
-        // Optionally move the player inside, near the bed, facing the door (+Z / north)
+        // Optionally move the player next to the bed, facing the door (+Z / north).
+        // With two floors that is upstairs, so the game opens by walking down.
         if (placePlayerInside)
         {
             GameObject player = GameObject.Find("PlayerArmature");
@@ -140,7 +197,7 @@ public class CabinBuilder : EditorWindow
             if (player != null)
             {
                 Undo.RecordObject(player.transform, "Place Player In Cabin");
-                player.transform.position = worldPos + new Vector3(0.6f, 0.2f, bedZ + 0.2f);
+                player.transform.position = worldPos + new Vector3(0.6f, bedFloorY + 0.2f, bedZ + 0.2f);
                 player.transform.rotation = Quaternion.identity; // face +Z toward the doorway
             }
             else
@@ -157,6 +214,13 @@ public class CabinBuilder : EditorWindow
     {
         GameObject cabin = GameObject.Find(CabinName);
         if (cabin != null) Undo.DestroyObjectImmediate(cabin);
+    }
+
+    // Same as Box, but you give the two opposite corners instead of a centre and a size.
+    // Much easier to read when building slabs around a hole.
+    static void BoxBetween(GameObject parent, string name, Vector3 min, Vector3 max, Material mat)
+    {
+        Box(parent, name, (min + max) * 0.5f, max - min, Quaternion.identity, mat);
     }
 
     // Creates a cube primitive (keeps its BoxCollider) parented under the cabin
