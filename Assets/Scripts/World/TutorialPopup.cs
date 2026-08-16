@@ -10,7 +10,9 @@ public class TutorialPopup : MonoBehaviour
     [Header("What it says")]
     public string title = "THE WOODS";
     [TextArea(2, 6)]
-    public string message = "Zombies roam these trees. Beat three of them and the portal will open.";
+    public string message = "Zombies roam these trees. Beat three of them and the portal will open.\n\n" +
+                            "Pick up armour to soak damage before your health, and rocks to throw. " +
+                            "Both stay with you between areas. Watch for them on the minimap.";
 
     [Tooltip("Left column of the key list")]
     public string[] keys = { "WASD", "SHIFT", "CTRL", "L-Click", "R-Click tap", "R-Click hold", "L-Click while aiming", "Y" };
@@ -93,7 +95,7 @@ public class TutorialPopup : MonoBehaviour
         int lines = Mathf.Min(keys.Length, actions.Length);
         float lineHeight = 28f;
         float panelW = 520f;
-        float panelH = 150f + lines * lineHeight + 70f;
+        float panelH = 200f + lines * lineHeight + 70f;
         float x = Screen.width / 2f - panelW / 2f;
         float y = Screen.height / 2f - panelH / 2f;
 
@@ -107,7 +109,7 @@ public class TutorialPopup : MonoBehaviour
 
         GUIStyle bodyStyle = new GUIStyle(GUI.skin.label)
         { fontSize = 17, alignment = TextAnchor.UpperCenter, wordWrap = true };
-        GUI.Label(new Rect(x + 30, y + 64, panelW - 60, 70), message, bodyStyle);
+        GUI.Label(new Rect(x + 30, y + 64, panelW - 60, 120), message, bodyStyle);
 
         GUIStyle keyStyle = new GUIStyle(GUI.skin.label)
         { fontSize = 16, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
@@ -117,7 +119,7 @@ public class TutorialPopup : MonoBehaviour
 
         for (int i = 0; i < lines; i++)
         {
-            float lineY = y + 140 + i * lineHeight;
+            float lineY = y + 190 + i * lineHeight;
             GUI.Label(new Rect(x + 40, lineY, 200, lineHeight), keys[i], keyStyle);
             GUI.Label(new Rect(x + 250, lineY, 240, lineHeight), actions[i], actionStyle);
         }

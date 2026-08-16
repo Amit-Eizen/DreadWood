@@ -13,6 +13,11 @@ public class GameManager : MonoBehaviour
     public int maxHP = 100;
     public int currentHP = 100;
 
+    [Header("Armour")]
+    [Tooltip("Armour soaks damage before health does. Picked up in the world.")]
+    public int maxArmour = 50;
+    public int currentArmour = 0;
+
     [Header("Objective")]
     [TextArea] public string objectiveText = "Find the portal";
 
@@ -46,6 +51,8 @@ public class GameManager : MonoBehaviour
         {
             maxHP = PlayerProgressBetweenScenes.Instance.maxHealth;
             currentHP = PlayerProgressBetweenScenes.Instance.currentHealth;
+            maxArmour = PlayerProgressBetweenScenes.Instance.maxArmour;
+            currentArmour = PlayerProgressBetweenScenes.Instance.currentArmour;
         }
     }
 
@@ -54,11 +61,26 @@ public class GameManager : MonoBehaviour
         if (damageFlash > 0f) damageFlash -= Time.unscaledDeltaTime;
     }
 
+    // True while the armour bar still has something in it. Enemies read this and hit
+    // harder, so wearing armour shortens the fight instead of just stretching it out.
+    public bool HasArmour => currentArmour > 0;
+
     public void TakeDamage(int amount)
     {
         if (isWin || isLose) return;
         if (PlayerDodge.IsDodging) return;   // i-frames: no damage mid-dodge
-        currentHP = Mathf.Max(0, currentHP - amount);
+
+        // Armour soaks damage first — only what is left over reaches health.
+        if (currentArmour > 0)
+        {
+            int absorbed = Mathf.Min(currentArmour, amount);
+            currentArmour -= absorbed;
+            amount -= absorbed;
+            SaveArmour();
+        }
+
+        if (amount > 0) currentHP = Mathf.Max(0, currentHP - amount);
+
         damageFlash = 0.4f;
         SaveHealth();
         if (currentHP <= 0) Lose();
@@ -71,11 +93,24 @@ public class GameManager : MonoBehaviour
         SaveHealth();
     }
 
+    public void AddArmour(int amount)
+    {
+        if (isWin || isLose) return;
+        currentArmour = Mathf.Min(maxArmour, currentArmour + amount);
+        SaveArmour();
+    }
+
     // Save the current health into PlayerProgress so it survives the next scene load.
     void SaveHealth()
     {
         if (PlayerProgressBetweenScenes.Instance != null)
             PlayerProgressBetweenScenes.Instance.SetHealth(currentHP);
+    }
+
+    void SaveArmour()
+    {
+        if (PlayerProgressBetweenScenes.Instance != null)
+            PlayerProgressBetweenScenes.Instance.SetArmour(currentArmour);
     }
 
     public void SetObjective(string text) { objectiveText = text; }
@@ -119,6 +154,24 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
+    // One thin stat bar with its name and numbers beside it.
+    void StatBar(float y, string label, int value, int max, Color fill)
+    {
+        const float barWidth = 150f, barHeight = 10f, x = 20f;
+        float filled = max > 0 ? Mathf.Clamp01((float)value / max) : 0f;
+
+        Color previous = GUI.color;
+        GUI.color = new Color(0f, 0f, 0f, 0.55f);
+        GUI.DrawTexture(new Rect(x, y, barWidth, barHeight), Texture2D.whiteTexture);
+        GUI.color = fill;
+        GUI.DrawTexture(new Rect(x, y, barWidth * filled, barHeight), Texture2D.whiteTexture);
+        GUI.color = previous;
+
+        GUIStyle style = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold };
+        Shadowed(new Rect(x + barWidth + 10f, y - 5f, 200f, 20f), label + "  " + value + " / " + max,
+                 style, TextAnchor.MiddleLeft, Color.white);
+    }
+
     // ---------- HUD ----------
     void OnGUI()
     {
@@ -130,8 +183,20 @@ public class GameManager : MonoBehaviour
             GUI.color = prev;
         }
 
-        GUIStyle hp = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold };
-        Shadowed(new Rect(20, 15, 320, 30), "HP: " + currentHP + " / " + maxHP, hp, TextAnchor.MiddleLeft, Color.white);
+        // Health and armour both read as bars so they compare at a glance. Armour is drawn
+        // even when empty, so the player can see the stat exists before finding any.
+        StatBar(16f, "HP", currentHP, maxHP, new Color(0.85f, 0.25f, 0.25f));
+        StatBar(34f, "ARMOUR", currentArmour, maxArmour, new Color(0.45f, 0.75f, 1f));
+
+        // Rocks left to throw. Turns red at zero so the player knows why nothing happens.
+        PlayerProgressBetweenScenes progress = PlayerProgressBetweenScenes.Instance;
+        if (progress != null)
+        {
+            GUIStyle rockStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold };
+            Color rockColour = progress.rockAmmo > 0 ? new Color(0.85f, 0.85f, 0.8f) : new Color(1f, 0.5f, 0.5f);
+            Shadowed(new Rect(20, 52f, 220, 20), "ROCKS  " + progress.rockAmmo + " / " + progress.maxRockAmmo,
+                     rockStyle, TextAnchor.MiddleLeft, rockColour);
+        }
 
         if (!isWin && !isLose && !string.IsNullOrEmpty(objectiveText))
         {
