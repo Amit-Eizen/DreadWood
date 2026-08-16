@@ -14,7 +14,7 @@ public class GameManager : MonoBehaviour
     public int currentHP = 100;
 
     [Header("Objective")]
-    [TextArea] public string objectiveText = "You need to reach the light";
+    [TextArea] public string objectiveText = "Find the portal";
 
     private bool isWin = false;
     private bool isLose = false;

@@ -37,6 +37,8 @@ public class PlayerDodge : MonoBehaviour
     private Animator animator;
     private bool hasDodgeTrigger = false;
     private float lastDodge = -999f;
+    private bool aimedDuringThisPress = false;
+    private bool rightMouseWasATap = false;
 
     void Awake() { IsDodging = false; }
 
@@ -54,14 +56,29 @@ public class PlayerDodge : MonoBehaviour
 
     void Update()
     {
+        TrackRightMouse();
+
         if (GameManager.Instance != null && GameManager.Instance.currentHP <= 0) return;
         if (IsDodging || Time.time - lastDodge < cooldown) return;
 
         bool pressed = false;
         if (useSpace && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame) pressed = true;
-        if (useRightMouse && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame) pressed = true;
+        if (useRightMouse && rightMouseWasATap) pressed = true;
 
         if (pressed) StartCoroutine(Dodge());
+    }
+
+    // Right mouse is shared with aiming: a quick tap dodges, holding it aims.
+    // So the dodge fires on RELEASE, and only if aiming never started during the press.
+    // PlayerAiming owns the hold timing, so there is only one threshold in the project.
+    void TrackRightMouse()
+    {
+        rightMouseWasATap = false;
+        if (!useRightMouse || Mouse.current == null) return;
+
+        if (Mouse.current.rightButton.wasPressedThisFrame) aimedDuringThisPress = false;
+        if (PlayerAiming.IsAiming) aimedDuringThisPress = true;
+        if (Mouse.current.rightButton.wasReleasedThisFrame && !aimedDuringThisPress) rightMouseWasATap = true;
     }
 
     IEnumerator Dodge()

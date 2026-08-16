@@ -8,6 +8,13 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class ObjectiveLight : MonoBehaviour
 {
+    [Header("Entry condition")]
+    [Tooltip("The portal stays shut until this many zombies are beaten")]
+    public int zombiesRequired = 3;
+
+    [Tooltip("Shown when the player arrives too early. {0} is how many are still missing.")]
+    public string notReadyMessage = "The portal is sealed — {0} zombies left";
+
     [Tooltip("The boss mutant to reveal (kept disabled until the player arrives)")]
     public GameObject boss;
 
@@ -31,6 +38,17 @@ public class ObjectiveLight : MonoBehaviour
     void OnTriggerEnter(Collider other)
     {
         if (triggered || !IsPlayer(other)) return;
+
+        // The portal will not open until the objective is done, so the player cannot
+        // simply walk past every zombie and skip straight to the end.
+        int stillNeeded = ZombiesStillNeeded();
+        if (stillNeeded > 0)
+        {
+            if (GameManager.Instance != null)
+                GameManager.Instance.SetObjective(string.Format(notReadyMessage, stillNeeded));
+            return;   // no `triggered` flag — walking back in later must work
+        }
+
         triggered = true;
 
         if (boss != null)
@@ -47,6 +65,13 @@ public class ObjectiveLight : MonoBehaviour
         {
             GameManager.Instance.Win();                        // no boss -> just win (test mode)
         }
+    }
+
+    int ZombiesStillNeeded()
+    {
+        PlayerProgressBetweenScenes progress = PlayerProgressBetweenScenes.Instance;
+        if (progress == null) return 0;   // no progress object (testing this scene alone) — let it through
+        return Mathf.Max(0, zombiesRequired - progress.ZombiesDefeated);
     }
 
     static bool IsPlayer(Collider c)

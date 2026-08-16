@@ -18,7 +18,7 @@ public class MainMenu : MonoBehaviour
 
     [Header("Text")]
     public string title = "DREADWOOD";
-    public string subtitle = "Escape the woods. Reach the light.";
+    public string subtitle = "Escape the woods. Find the portal.";
 
     [Header("Background (main menu)")]
     [Tooltip("Optional image behind the MAIN menu. If empty, the live game view shows through.")]
@@ -29,8 +29,8 @@ public class MainMenu : MonoBehaviour
     public bool showMainOnStart = true;
 
     [Header("Controls legend")]
-    public string[] controlsKeys = { "WASD", "SHIFT", "CTRL", "L-Click", "R-Click", "SPACE", "Y" };
-    public string[] controlsActions = { "Move", "Run", "Sneak", "Attack", "Dodge", "Jump", "Open door" };
+    public string[] controlsKeys = { "WASD", "SHIFT", "CTRL", "L-Click", "R-Click tap", "R-Click hold", "L-Click while aiming", "SPACE", "Y" };
+    public string[] controlsActions = { "Move", "Run", "Sneak", "Attack", "Dodge", "Aim (first person)", "Throw a rock", "Jump", "Open door" };
 
     private State state = State.Main;
     private bool showControls = false;
@@ -61,6 +61,8 @@ public class MainMenu : MonoBehaviour
             p.GetComponent<PlayerCombat>(),
             p.GetComponent<PlayerDodge>(),
             p.GetComponent<PlayerStealth>(),
+            p.GetComponent<PlayerAiming>(),
+            p.GetComponent<RockThrow>(),
         };
     }
 
@@ -241,7 +243,7 @@ public class MainMenu : MonoBehaviour
     void DrawControlsPanel(System.Action onBack)
     {
         int n = Mathf.Min(controlsKeys.Length, controlsActions.Length);
-        float lineH = 30f, panelW = 320f, panelH = lineH * n + 90f;
+        float lineH = 30f, panelW = 460f, panelH = lineH * n + 90f;
         float x = Screen.width / 2f - panelW / 2f, y = Screen.height * 0.40f;
 
         GUI.color = new Color(0f, 0f, 0f, 0.6f);
@@ -256,8 +258,8 @@ public class MainMenu : MonoBehaviour
         for (int i = 0; i < n; i++)
         {
             float ly = y + 16 + i * lineH;
-            GUI.Label(new Rect(x + 24, ly, 120, lineH), controlsKeys[i], keyS);
-            GUI.Label(new Rect(x + 150, ly, 150, lineH), controlsActions[i], actS);
+            GUI.Label(new Rect(x + 24, ly, 190, lineH), controlsKeys[i], keyS);
+            GUI.Label(new Rect(x + 220, ly, 220, lineH), controlsActions[i], actS);
         }
 
         float bw = 160, bh = 40;

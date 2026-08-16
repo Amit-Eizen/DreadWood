@@ -90,8 +90,9 @@ public class PlayerCombat : MonoBehaviour
 
         if (Time.time - lastAttack > comboResetTime) comboStep = 0;
 
+        // While aiming, the left click throws a rock (RockThrow) instead of swinging.
         bool clicked = Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
-        if (clicked && Time.time - lastAttack >= cooldown)
+        if (clicked && !PlayerAiming.IsAiming && Time.time - lastAttack >= cooldown)
             Swing();
     }
 

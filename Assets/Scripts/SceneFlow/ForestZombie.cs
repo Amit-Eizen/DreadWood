@@ -15,7 +15,7 @@ public class ForestZombie : MonoBehaviour
     [Tooltip("Name of the arena scene to load for the fight")]
     public string arenaSceneName = "Scene2_ZombieArena";
 
-    [Tooltip("Once this many zombies are beaten, zombies stop starting fights (so you can reach the light)")]
+    [Tooltip("Once this many zombies are beaten, zombies stop starting fights (so you can reach the portal)")]
     public int stopEngagingAfterDefeated = 3;
 
     [Tooltip("Nearby zombies within this range get dragged into the same arena fight")]
@@ -52,6 +52,17 @@ public class ForestZombie : MonoBehaviour
         GameObject p = GameObject.FindWithTag("Player");
         if (p == null) p = GameObject.Find("PlayerArmature");
         if (p != null) player = p.transform;
+
+        // Killing this zombie out here — with a thrown rock, say — counts towards the
+        // objective too, not only beating it in the arena.
+        EnemyHealth health = GetComponent<EnemyHealth>();
+        if (health != null) health.OnDeath += CountAsDefeated;
+    }
+
+    void CountAsDefeated()
+    {
+        if (PlayerProgressBetweenScenes.Instance != null)
+            PlayerProgressBetweenScenes.Instance.MarkZombieDefeated(zombieId);
     }
 
     void Update()

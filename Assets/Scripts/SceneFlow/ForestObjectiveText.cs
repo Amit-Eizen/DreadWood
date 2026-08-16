@@ -10,7 +10,7 @@ public class ForestObjectiveText : MonoBehaviour
     public int zombiesToDefeat = 3;
 
     [Tooltip("Text shown once enough zombies are beaten")]
-    public string reachLightText = "Go to the light";
+    public string reachPortalText = "Head to the portal";
 
     // The last count we showed, so we only update the text when it actually changes.
     private int lastShownCount = -1;
@@ -26,7 +26,7 @@ public class ForestObjectiveText : MonoBehaviour
         lastShownCount = defeated;
 
         if (defeated >= zombiesToDefeat)
-            GameManager.Instance.SetObjective(reachLightText);
+            GameManager.Instance.SetObjective(reachPortalText);
         else
             GameManager.Instance.SetObjective("Defeat zombies: " + defeated + " / " + zombiesToDefeat);
     }
