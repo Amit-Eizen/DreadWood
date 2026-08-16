@@ -30,6 +30,11 @@ public class RockThrow : MonoBehaviour
         if (Time.time - lastThrow < cooldown) return;
         if (rockPrefab == null || throwPoint == null) return;
 
+        // Rocks are a resource that carries between scenes, so an empty pocket means
+        // no throw. Picking up a rock pile refills it.
+        PlayerProgressBetweenScenes progress = PlayerProgressBetweenScenes.Instance;
+        if (progress != null && !progress.TryUseRock()) return;
+
         lastThrow = Time.time;
         Throw();
     }

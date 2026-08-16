@@ -27,6 +27,8 @@ public class MutantAI : MonoBehaviour
     public float rotationSpeed = 6f;
     public float attackRange = 2f;
     public int attackDamage = 12;
+    [Tooltip("Hits land this much harder while the player still has armour, so armour changes the fight instead of just stretching it out")]
+    public float damageMultiplierVsArmour = 1.6f;
     public float attackCooldown = 1.5f;
     public float damageDelay = 1.0f;
     public float attackHold = 1.3f;
@@ -213,8 +215,15 @@ public class MutantAI : MonoBehaviour
     {
         if (player == null || GameManager.Instance == null) return;
         if (GameManager.Instance.currentHP <= 0) return;
-        if (Vector3.Distance(transform.position, player.position) <= attackRange + 1f)
-            GameManager.Instance.TakeDamage(attackDamage);
+        if (Vector3.Distance(transform.position, player.position) > attackRange + 1f) return;
+
+        // Armour absorbs damage, so without this a fight against an armoured player would
+        // simply take twice as long. Hitting harder keeps the pace and makes armour a
+        // trade — you survive longer, but each blow costs more of it.
+        int damage = GameManager.Instance.HasArmour
+            ? Mathf.RoundToInt(attackDamage * damageMultiplierVsArmour)
+            : attackDamage;
+        GameManager.Instance.TakeDamage(damage);
     }
 
     // Enemies all run at the same point, so they end up standing inside each other.

@@ -11,6 +11,16 @@ public class PlayerProgressBetweenScenes : MonoBehaviour
     public int maxHealth = 100;
     public int currentHealth = 100;
 
+    [Header("Armour (carried between scenes)")]
+    // Armour soaks up damage before health does. It lives here rather than on GameManager
+    // because GameManager is rebuilt in every scene, so armour would reset on each load.
+    public int maxArmour = 50;
+    public int currentArmour = 0;
+
+    [Header("Rocks to throw (carried between scenes)")]
+    public int maxRockAmmo = 10;
+    public int rockAmmo = 5;
+
     [Header("Score (carried between scenes)")]
     public int score = 0;
 
@@ -54,6 +64,34 @@ public class PlayerProgressBetweenScenes : MonoBehaviour
         currentHealth = Mathf.Clamp(value, 0, maxHealth);
     }
 
+    public void SetArmour(int value)
+    {
+        currentArmour = Mathf.Clamp(value, 0, maxArmour);
+    }
+
+    public void AddArmour(int amount)
+    {
+        SetArmour(currentArmour + amount);
+    }
+
+    public void AddScore(int amount)
+    {
+        score = Mathf.Max(0, score + amount);
+    }
+
+    public void AddRocks(int amount)
+    {
+        rockAmmo = Mathf.Clamp(rockAmmo + amount, 0, maxRockAmmo);
+    }
+
+    // Returns false when there is nothing left to throw.
+    public bool TryUseRock()
+    {
+        if (rockAmmo <= 0) return false;
+        rockAmmo--;
+        return true;
+    }
+
     public void CollectItem(string itemName)
     {
         collectedItems.Add(itemName);
@@ -94,6 +132,8 @@ public class PlayerProgressBetweenScenes : MonoBehaviour
     public void ResetForNewGame()
     {
         currentHealth = maxHealth;
+        currentArmour = 0;
+        rockAmmo = 5;
         score = 0;
         collectedItems.Clear();
         defeatedZombieIds.Clear();
