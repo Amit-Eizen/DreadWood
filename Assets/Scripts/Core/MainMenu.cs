@@ -35,6 +35,12 @@ public class MainMenu : MonoBehaviour
     private bool showControls = false;
     private MonoBehaviour[] playerControlScripts;
 
+    // True while any menu covers the screen. GameManager checks it before drawing the HUD —
+    // health bars behind a main menu look like a mistake.
+    public static bool IsOpen { get; private set; }
+
+    void OnDisable() => IsOpen = false;
+
     void Start()
     {
         playerControlScripts = PlayerControls.FindAll();
@@ -69,6 +75,7 @@ public class MainMenu : MonoBehaviour
     void GoMain()
     {
         state = State.Main;
+        IsOpen = true;
         showControls = false;
         Time.timeScale = 0f;
         FreeCursor(true);
@@ -78,6 +85,7 @@ public class MainMenu : MonoBehaviour
     void BeginPlay()
     {
         state = State.Playing;
+        IsOpen = false;
         Time.timeScale = 1f;
         FreeCursor(false);
         SetPlayerControl(true);
@@ -86,6 +94,7 @@ public class MainMenu : MonoBehaviour
     void Pause()
     {
         state = State.Paused;
+        IsOpen = true;
         showControls = false;
         Time.timeScale = 0f;
         FreeCursor(true);

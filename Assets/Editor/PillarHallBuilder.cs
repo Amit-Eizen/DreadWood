@@ -98,10 +98,14 @@ public class PillarHallBuilder : EditorWindow
             Vector3 spot = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * pillarRingRadius;
 
             // A Unity cylinder is 2 units tall at scale 1, so the y scale is half the height.
-            BuildingBlocks.Shape(pillars, "Pillar_" + (i + 1), PrimitiveType.Cylinder,
+            GameObject pillar = BuildingBlocks.Shape(pillars, "Pillar_" + (i + 1), PrimitiveType.Cylinder,
                 new Vector3(spot.x, pillarHeight / 2f, spot.z),
                 new Vector3(pillarRadius * 2f, pillarHeight / 2f, pillarRadius * 2f),
                 Quaternion.identity, pillarMaterial);
+
+            // Everything else here is static so Unity can batch it. A pillar has to topple,
+            // and a batched mesh cannot move — the transform turns but nothing on screen does.
+            pillar.isStatic = false;
         }
 
         for (int i = 0; i < lightCount; i++)

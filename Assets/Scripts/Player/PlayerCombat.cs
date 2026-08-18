@@ -125,32 +125,61 @@ public class PlayerCombat : MonoBehaviour
         yield return new WaitForSeconds(delay);
 
         HashSet<EnemyHealth> alreadyHit = new HashSet<EnemyHealth>();
+        HashSet<PillarTopple> pillarsAlreadyHit = new HashSet<PillarTopple>();
+        HashSet<CollapsingBarrier> propsAlreadyHit = new HashSet<CollapsingBarrier>();
         bool didHitStop = false;
         float t = 0f;
 
         while (t < hitWindow)
         {
-            EnemyHealth[] enemies = Object.FindObjectsByType<EnemyHealth>();
-            foreach (EnemyHealth e in enemies)
+            foreach (EnemyHealth e in Object.FindObjectsByType<EnemyHealth>())
             {
                 if (e == null || alreadyHit.Contains(e)) continue;
+                if (!InSwingArc(e.transform.position, r)) continue;
 
-                Vector3 to = e.transform.position - transform.position;
-                to.y = 0f;
-                if (to.magnitude <= r && Vector3.Angle(transform.forward, to) <= coneAngle * 0.5f)
-                {
-                    e.TakeDamage(dmg);
-                    alreadyHit.Add(e);
+                e.TakeDamage(dmg);
+                alreadyHit.Add(e);
 
-                    Vector3 point = e.transform.position + Vector3.up;
-                    SpawnSlash(point);
-                    if (hitSound != null) AudioSource.PlayClipAtPoint(hitSound, point, hitVolume);
-                    if (!didHitStop && hitStopDuration > 0f) { didHitStop = true; StartCoroutine(HitStop()); }
-                }
+                Vector3 point = e.transform.position + Vector3.up;
+                SpawnSlash(point);
+                if (hitSound != null) AudioSource.PlayClipAtPoint(hitSound, point, hitVolume);
+                if (!didHitStop && hitStopDuration > 0f) { didHitStop = true; StartCoroutine(HitStop()); }
             }
+
+            // The axe works on the hall's pillars too — chopping one down is how the boss
+            // fight is actually won.
+            foreach (PillarTopple pillar in Object.FindObjectsByType<PillarTopple>())
+            {
+                if (pillar == null || pillarsAlreadyHit.Contains(pillar)) continue;
+                if (!InSwingArc(pillar.transform.position, r)) continue;
+
+                pillar.TakeHit();
+                pillarsAlreadyHit.Add(pillar);
+                SpawnSlash(transform.position + transform.forward * r * 0.5f + Vector3.up);
+            }
+
+            // Crates and log stacks come apart under the axe as well as under a thrown rock.
+            foreach (CollapsingBarrier prop in Object.FindObjectsByType<CollapsingBarrier>())
+            {
+                if (prop == null || propsAlreadyHit.Contains(prop)) continue;
+                if (!InSwingArc(prop.transform.position, r)) continue;
+
+                prop.TakeHit();
+                propsAlreadyHit.Add(prop);
+                SpawnSlash(prop.transform.position + Vector3.up);
+            }
+
             t += Time.deltaTime;
             yield return null;
         }
+    }
+
+    // In front of the player and close enough, ignoring height.
+    bool InSwingArc(Vector3 target, float range)
+    {
+        Vector3 to = target - transform.position;
+        to.y = 0f;
+        return to.magnitude <= range && Vector3.Angle(transform.forward, to) <= coneAngle * 0.5f;
     }
 
     void SpawnSlash(Vector3 point)

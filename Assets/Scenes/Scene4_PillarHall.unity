@@ -486,6 +486,66 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 290994707}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &313345379
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 313345381}
+  - component: {fileID: 313345380}
+  m_Layer: 0
+  m_Name: PickupSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &313345380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313345379}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: deb476c7b74049f41bef3909284cd87d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArenaPickupSpawner
+  health:
+    prefab: {fileID: 6301527637434599481, guid: b6f0e4f24208803418ab373f8fad9a55, type: 3}
+    onTheFloor: 2
+    refills: 2
+    refillDelay: 20
+  armour:
+    prefab: {fileID: 6301527637434599481, guid: 22a380f48ba22bc459b7c7df5d9cdaae, type: 3}
+    onTheFloor: 1
+    refills: 2
+    refillDelay: 30
+  spreadRadius: 15
+  minimumGap: 5
+  dropHeight: 0.5
+  floorLayers:
+    serializedVersion: 2
+    m_Bits: 128
+--- !u!4 &313345381
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313345379}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &405734790
 GameObject:
   m_ObjectHideFlags: 0
@@ -498,12 +558,13 @@ GameObject:
   - component: {fileID: 405734794}
   - component: {fileID: 405734793}
   - component: {fileID: 405734792}
+  - component: {fileID: 405734795}
   m_Layer: 9
   m_Name: Pillar_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &405734791
 Transform:
@@ -600,6 +661,27 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 405734790}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &405734795
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 405734790}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1be5016ba6cf774409bb4d2141f469d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PillarTopple
+  hitsToTopple: 4
+  crushDamage: 120
+  crushRadius: 6
+  fallSeconds: 1.2
+  shatteredPillar: {fileID: 3099645686475266046, guid: e8e8d4184b60e42438d3191bab89e7f7, type: 3}
+  clearAwayAfter: 4
+  shatterForce: 350
+  showMeterFor: 3
+  aimAtEnemies: 1
 --- !u!1 &409747042
 GameObject:
   m_ObjectHideFlags: 0
@@ -746,6 +828,70 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 427948303}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &444710260
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 444710262}
+  - component: {fileID: 444710261}
+  m_Layer: 0
+  m_Name: NavMesh
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &444710261
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 444710260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a5ac11cc976e418e8d13136b07e1f52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshSurface
+  m_SerializedVersion: 0
+  m_AgentTypeID: -334000983
+  m_CollectObjects: 0
+  m_Size: {x: 10, y: 10, z: 10}
+  m_Center: {x: 0, y: 2, z: 0}
+  m_LayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_UseGeometry: 0
+  m_DefaultArea: 0
+  m_GenerateLinks: 0
+  m_IgnoreNavMeshAgent: 1
+  m_IgnoreNavMeshObstacle: 1
+  m_OverrideTileSize: 0
+  m_TileSize: 256
+  m_OverrideVoxelSize: 0
+  m_VoxelSize: 0.26666668
+  m_MinRegionArea: 2
+  m_NavMeshData: {fileID: 23800000, guid: 9a5cd61e3a1878e4c90942944f660b47, type: 2}
+  m_BuildHeightMesh: 0
+--- !u!4 &444710262
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 444710260}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &456166316
 GameObject:
   m_ObjectHideFlags: 0
@@ -979,12 +1125,13 @@ GameObject:
   - component: {fileID: 483743535}
   - component: {fileID: 483743534}
   - component: {fileID: 483743533}
+  - component: {fileID: 483743536}
   m_Layer: 9
   m_Name: Pillar_4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &483743532
 Transform:
@@ -1081,6 +1228,27 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 483743531}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &483743536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 483743531}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1be5016ba6cf774409bb4d2141f469d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PillarTopple
+  hitsToTopple: 4
+  crushDamage: 120
+  crushRadius: 6
+  fallSeconds: 1.2
+  shatteredPillar: {fileID: 3099645686475266046, guid: e8e8d4184b60e42438d3191bab89e7f7, type: 3}
+  clearAwayAfter: 4
+  shatterForce: 350
+  showMeterFor: 3
+  aimAtEnemies: 1
 --- !u!1 &515556140
 GameObject:
   m_ObjectHideFlags: 0
@@ -1273,12 +1441,13 @@ GameObject:
   - component: {fileID: 621481300}
   - component: {fileID: 621481299}
   - component: {fileID: 621481298}
+  - component: {fileID: 621481301}
   m_Layer: 9
   m_Name: Pillar_6
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &621481297
 Transform:
@@ -1375,6 +1544,27 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 621481296}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &621481301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 621481296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1be5016ba6cf774409bb4d2141f469d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PillarTopple
+  hitsToTopple: 4
+  crushDamage: 120
+  crushRadius: 6
+  fallSeconds: 1.2
+  shatteredPillar: {fileID: 3099645686475266046, guid: e8e8d4184b60e42438d3191bab89e7f7, type: 3}
+  clearAwayAfter: 4
+  shatterForce: 350
+  showMeterFor: 3
+  aimAtEnemies: 1
 --- !u!1 &730918294
 GameObject:
   m_ObjectHideFlags: 0
@@ -1604,7 +1794,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 50
+  orthographic size: 33
   m_Depth: 1
   m_CullingMask:
     serializedVersion: 2
@@ -1647,12 +1837,13 @@ GameObject:
   - component: {fileID: 1290850918}
   - component: {fileID: 1290850917}
   - component: {fileID: 1290850916}
+  - component: {fileID: 1290850919}
   m_Layer: 9
   m_Name: Pillar_5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &1290850915
 Transform:
@@ -1749,6 +1940,27 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1290850914}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1290850919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1290850914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1be5016ba6cf774409bb4d2141f469d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PillarTopple
+  hitsToTopple: 4
+  crushDamage: 120
+  crushRadius: 6
+  fallSeconds: 1.2
+  shatteredPillar: {fileID: 3099645686475266046, guid: e8e8d4184b60e42438d3191bab89e7f7, type: 3}
+  clearAwayAfter: 4
+  shatterForce: 350
+  showMeterFor: 3
+  aimAtEnemies: 1
 --- !u!1 &1314055152
 GameObject:
   m_ObjectHideFlags: 0
@@ -1912,12 +2124,13 @@ GameObject:
   - component: {fileID: 1384556327}
   - component: {fileID: 1384556326}
   - component: {fileID: 1384556325}
+  - component: {fileID: 1384556328}
   m_Layer: 9
   m_Name: Pillar_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &1384556324
 Transform:
@@ -2014,6 +2227,27 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1384556323}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1384556328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1384556323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1be5016ba6cf774409bb4d2141f469d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PillarTopple
+  hitsToTopple: 4
+  crushDamage: 120
+  crushRadius: 6
+  fallSeconds: 1.2
+  shatteredPillar: {fileID: 3099645686475266046, guid: e8e8d4184b60e42438d3191bab89e7f7, type: 3}
+  clearAwayAfter: 4
+  shatterForce: 350
+  showMeterFor: 3
+  aimAtEnemies: 1
 --- !u!1 &1397105140
 GameObject:
   m_ObjectHideFlags: 0
@@ -2295,12 +2529,13 @@ GameObject:
   - component: {fileID: 1697900033}
   - component: {fileID: 1697900032}
   - component: {fileID: 1697900031}
+  - component: {fileID: 1697900034}
   m_Layer: 9
   m_Name: Pillar_3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &1697900030
 Transform:
@@ -2397,6 +2632,27 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1697900029}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1697900034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1697900029}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1be5016ba6cf774409bb4d2141f469d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PillarTopple
+  hitsToTopple: 4
+  crushDamage: 120
+  crushRadius: 6
+  fallSeconds: 1.2
+  shatteredPillar: {fileID: 3099645686475266046, guid: e8e8d4184b60e42438d3191bab89e7f7, type: 3}
+  clearAwayAfter: 4
+  shatterForce: 350
+  showMeterFor: 3
+  aimAtEnemies: 1
 --- !u!1 &1703534287
 GameObject:
   m_ObjectHideFlags: 0
@@ -2669,6 +2925,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 311312753f503c642a52b163530ca7ed, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1722063380}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 311312753f503c642a52b163530ca7ed, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1722063385}
   m_SourcePrefab: {fileID: 100100000, guid: 311312753f503c642a52b163530ca7ed, type: 3}
 --- !u!1 &1722063379 stripped
 GameObject:
@@ -2687,10 +2946,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74920b262e65f0c4c8def19a77644c4a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
-  maxHP: 250
+  maxHP: 400
   isBoss: 1
   removeDelay: 1.5
   bossName: THE CREATURE
+  knockdownAt:
+  - 0.75
+  - 0.5
+  - 0.25
+  knockdownSeconds: 6
+  knockdownHint: "DOWN \u2014 BRING A PILLAR OVER ON IT"
   headHeight: 2.2
   knockback: 0.12
   hitAnimTrigger: 
@@ -2714,7 +2979,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   stealthDetectionMultiplier: 0.35
-  moveSpeed: 3.2
+  moveSpeed: 4
   rotationSpeed: 6
   attackRange: 2
   attackDamage: 20
@@ -2723,9 +2988,14 @@ MonoBehaviour:
   damageDelay: 1
   attackHold: 1.3
   loseSightTime: 4
+  patrolPoints: []
+  waitSecondsAtEachPoint: 2.5
   wanderRadius: 12
   wanderSpeed: 1
   pauseRange: {x: 1.5, y: 4}
+  knockedOverAngle: 70
+  fallOverSpeed: 2
+  knockedOverLift: 0.5
   groundLayers:
     serializedVersion: 2
     m_Bits: 640
@@ -2753,6 +3023,111 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 1, z: 0}
+--- !u!195 &1722063385
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1722063379}
+  m_Enabled: 1
+  m_AgentTypeID: -334000983
+  m_Radius: 0.5
+  m_Speed: 4
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!1 &1723452547
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1723452550}
+  - component: {fileID: 1723452549}
+  - component: {fileID: 1723452548}
+  m_Layer: 0
+  m_Name: BossBriefing
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1723452548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1723452547}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cc28cdd51a560a47affbda2d8cd8c50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialPopup
+  title: THE PILLAR HALL
+  message: "The gate is shut behind you. The axe alone will not finish this.\r\n\r\nHurt
+    it enough and it drops \u2014 that is your window. \nRun to the pillar nearest
+    to it and chop the base. \nThe pillar comes down on top of it.\r\n\r\nHealth
+    and armour keep appearing on the floor. Not forever."
+  keys:
+  - WASD
+  - SHIFT
+  - L-Click
+  - R-Click tap
+  actions:
+  - Move
+  - Run
+  - Attack / chop a pillar
+  - Dodge
+  continueLabel: CONTINUE
+  showOnStart: 1
+--- !u!65 &1723452549
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1723452547}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!4 &1723452550
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1723452547}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.12029, y: -0, z: 10.18177}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1824637949
 GameObject:
   m_ObjectHideFlags: 0
@@ -2884,8 +3259,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1958978227}
   - component: {fileID: 1958978226}
-  - component: {fileID: 1958978225}
-  - component: {fileID: 1958978224}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -2893,32 +3266,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1958978224
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1958978223}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a45e01e08962615498da1ccdf7aab554, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RestorePlayerPositionOnReturn
---- !u!114 &1958978225
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1958978223}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 28447aff02e553e4b93794a492a7a0f4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ForestObjectiveText
-  zombiesToDefeat: 3
-  reachPortalText: Head to the portal
 --- !u!114 &1958978226
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3555,3 +3902,6 @@ SceneRoots:
   - {fileID: 1958978227}
   - {fileID: 189418330}
   - {fileID: 1722063378}
+  - {fileID: 313345381}
+  - {fileID: 1723452550}
+  - {fileID: 444710262}

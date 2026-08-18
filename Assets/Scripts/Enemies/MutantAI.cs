@@ -1,9 +1,12 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 // Stealth-aware enemy AI for zombies / the mutant.
-// - Idle: WANDERS slowly around its spawn area (shuffles to random points).
+// - Idle: PATROLS between its waypoints, waiting a beat at each one.
 // - Sees the player (within range + vision cone + line of sight) -> chases & attacks.
-// - Loses sight long enough -> goes back to wandering.
+// - Loses sight long enough -> goes back to patrolling.
+// With a NavMeshAgent it walks around walls. Without one it moves in a straight line,
+// which is all a scene with nothing in the way needs.
 // Animator params (driven here):
 //   "isWandering" (bool) = slow WALK while roaming
 //   "isChasing"   (bool) = RUN while chasing the player
@@ -34,10 +37,27 @@ public class MutantAI : MonoBehaviour
     public float attackHold = 1.3f;
     public float loseSightTime = 4f;
 
-    [Header("Wander (idle)")]
-    public float wanderRadius = 12f;       // how far it roams from its spawn
+    [Header("Patrol (idle)")]
+    [Tooltip("Walks between these in order. Leave empty and it roams near where it started.")]
+    public Transform[] patrolPoints;
+
+    [Tooltip("Seconds it stands and looks around at each point")]
+    public float waitSecondsAtEachPoint = 2.5f;
+
+    public float wanderRadius = 12f;       // how far it roams when it has no patrol points
     public float wanderSpeed = 1f;         // slow zombie shuffle
     public Vector2 pauseRange = new Vector2(1.5f, 4f); // idle pauses between strolls
+
+    [Header("Knocked out")]
+    [Tooltip("How far it tips over while floored. 0 leaves it standing.")]
+    public float knockedOverAngle = 78f;
+
+    [Tooltip("How fast it goes down and gets back up")]
+    public float fallOverSpeed = 2.5f;
+
+    [Tooltip("Lifts the body while it is lying down. Tipping it over swings part of the model " +
+             "below the floor, and nothing here uses physics to stop that.")]
+    public float knockedOverLift = 0.5f;
 
     [Header("Footing")]
     [Tooltip("What counts as floor in scenes with no Terrain. Keep this to Ground and " +
@@ -55,11 +75,18 @@ public class MutantAI : MonoBehaviour
     private bool alerted = false;
     private Terrain ground;
 
+    private NavMeshAgent agent;
+    private bool agentPausedForKnockOut = false;
     private float knockedOutUntil = 0f;
     private Vector3 home;
     private Vector3 wanderTarget;
     private bool hasWanderTarget = false;
+    private int patrolIndex = 0;
     private float pauseUntil = 0f;
+
+    // True when a baked NavMesh is doing the walking, so we must not also shove the
+    // transform around ourselves — the two fight each other and the enemy jitters.
+    bool AgentDriving => agent != null && agent.enabled && agent.isOnNavMesh;
 
     // which animator params actually exist (the boss's MutantController lacks some) —
     // checked so we never spam "parameter does not exist" warnings
@@ -77,6 +104,29 @@ public class MutantAI : MonoBehaviour
         animator = GetComponent<Animator>();
         ground = Terrain.activeTerrain;
         home = transform.position;
+
+        // We turn the body ourselves so it can face the player while backing off or
+        // standing still — the agent's own turning would fight that.
+        agent = GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            agent.updateRotation = false;
+
+            // Left on, this stands the body back upright every frame and it can never lie down.
+            agent.updateUpAxis = false;
+
+            agent.stoppingDistance = attackRange * 0.8f;
+
+            // Standing off the baked mesh, an agent still overwrites the transform every
+            // frame with a position that never changes — so it freezes on the spot.
+            if (!agent.isOnNavMesh)
+            {
+                Debug.LogWarning("[MutantAI] " + name + " is not standing on a baked NavMesh. " +
+                                 "Moving it in a straight line instead — bake the scene, or " +
+                                 "drop it onto the blue area.", this);
+                agent.enabled = false;
+            }
+        }
 
         foreach (AnimatorControllerParameter p in animator.parameters)
         {
@@ -101,8 +151,19 @@ public class MutantAI : MonoBehaviour
         if (IsKnockedOut)
         {
             SetGait(false, false);
+            StopMoving();
+            TipOver(true);
             SnapToGround();
             return;
+        }
+        TipOver(false);
+
+        // Back on its feet — hand the steering back. Re-enabling drops it onto the nearest
+        // point of the mesh, which is where it is already standing.
+        if (agentPausedForKnockOut)
+        {
+            agentPausedForKnockOut = false;
+            if (agent != null) agent.enabled = true;
         }
 
         if (alwaysAggressive)
@@ -118,13 +179,23 @@ public class MutantAI : MonoBehaviour
         }
 
         if (alerted) ChaseAndAttack();
-        else Wander();
+        else Patrol();
 
-        KeepApartFromOtherEnemies();
+        // Shoving the transform around fights the agent for control of it, and the agent
+        // already keeps its own distance from the others.
+        if (!AgentDriving) KeepApartFromOtherEnemies();
         SnapToGround();
     }
 
     public bool IsKnockedOut => Time.time < knockedOutUntil;
+
+    // The animator has no floored state, so the body is simply tipped over and stood back up.
+    void TipOver(bool down)
+    {
+        float tilt = Mathf.LerpAngle(transform.eulerAngles.x, down ? knockedOverAngle : 0f,
+                                     Time.deltaTime * fallOverSpeed);
+        transform.rotation = Quaternion.Euler(tilt, transform.eulerAngles.y, 0f);
+    }
 
     // Floored for a few seconds: no chasing, no attacking. Pending attacks are cancelled,
     // because an Invoke already scheduled still lands while the enemy is meant to be down.
@@ -133,6 +204,14 @@ public class MutantAI : MonoBehaviour
         CancelInvoke(nameof(ApplyAttackDamage));
         knockedOutUntil = Time.time + seconds;
         attackHoldUntil = 0f;
+
+        // The agent keeps steering and standing the body upright. Switching it off leaves the
+        // body lying exactly where it fell.
+        if (agent != null && agent.enabled)
+        {
+            agent.enabled = false;
+            agentPausedForKnockOut = true;
+        }
     }
 
     bool CanSeePlayer()
@@ -166,52 +245,99 @@ public class MutantAI : MonoBehaviour
         if (Time.time < attackHoldUntil)
         {
             SetGait(false, false);
+            StopMoving();
             FaceDirection(player.position - transform.position);
             return;
         }
 
+        FaceDirection(player.position - transform.position);
+
         if (distance <= attackRange)
         {
             SetGait(false, false);
-            FaceDirection(player.position - transform.position);
+            StopMoving();
             TryAttack();
         }
         else
         {
             SetGait(false, true);   // RUN at the player
-            FaceDirection(player.position - transform.position);
-            Vector3 dir = player.position - transform.position; dir.y = 0f;
-            transform.position += dir.normalized * moveSpeed * Time.deltaTime;
+            MoveTowards(player.position, moveSpeed);
         }
     }
 
-    void Wander()
+    // Walks its beat: on to the next point, stand there a moment, on to the one after.
+    // With no points set it falls back to drifting around wherever it started.
+    void Patrol()
     {
-        // standing-idle pause between strolls
-        if (Time.time < pauseUntil) { SetGait(false, false); return; }
+        if (Time.time < pauseUntil) { SetGait(false, false); StopMoving(); return; }
 
-        Vector3 flatPos = new Vector3(transform.position.x, 0f, transform.position.z);
-        Vector3 flatTarget = new Vector3(wanderTarget.x, 0f, wanderTarget.z);
+        Vector3 target = NextPatrolTarget();
+        Vector3 flatGap = target - transform.position;
+        flatGap.y = 0f;
 
-        if (!hasWanderTarget || Vector3.Distance(flatPos, flatTarget) < 1f)
+        if (flatGap.magnitude < 1.5f)
         {
-            Vector2 r = Random.insideUnitCircle * wanderRadius;
-            wanderTarget = home + new Vector3(r.x, 0f, r.y);
-            hasWanderTarget = true;
-
-            // sometimes just stand and look around for a bit
-            if (Random.value < 0.4f)
-            {
-                pauseUntil = Time.time + Random.Range(pauseRange.x, pauseRange.y);
-                SetGait(false, false);
-                return;
-            }
+            ArriveAtPatrolPoint();
+            return;
         }
 
-        Vector3 dir = wanderTarget - transform.position; dir.y = 0f;
-        SetGait(true, false);   // WALK while roaming
-        FaceDirection(dir);
-        transform.position += dir.normalized * wanderSpeed * Time.deltaTime;
+        SetGait(true, false);   // WALK while patrolling
+        FaceDirection(flatGap);
+        MoveTowards(target, wanderSpeed);
+    }
+
+    Vector3 NextPatrolTarget()
+    {
+        if (patrolPoints != null && patrolPoints.Length > 0)
+        {
+            Transform point = patrolPoints[patrolIndex % patrolPoints.Length];
+            if (point != null) return point.position;
+        }
+
+        if (!hasWanderTarget)
+        {
+            Vector2 circle = Random.insideUnitCircle * wanderRadius;
+            wanderTarget = home + new Vector3(circle.x, 0f, circle.y);
+            hasWanderTarget = true;
+        }
+        return wanderTarget;
+    }
+
+    void ArriveAtPatrolPoint()
+    {
+        SetGait(false, false);
+        StopMoving();
+
+        if (patrolPoints != null && patrolPoints.Length > 0)
+        {
+            patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
+            pauseUntil = Time.time + waitSecondsAtEachPoint;
+            return;
+        }
+
+        // No patrol route: pick a fresh spot, and sometimes just stand and look around.
+        hasWanderTarget = false;
+        if (Random.value < 0.4f) pauseUntil = Time.time + Random.Range(pauseRange.x, pauseRange.y);
+    }
+
+    void MoveTowards(Vector3 target, float speed)
+    {
+        if (AgentDriving)
+        {
+            agent.speed = speed;
+            agent.isStopped = false;
+            agent.SetDestination(target);
+            return;
+        }
+
+        Vector3 direction = target - transform.position;
+        direction.y = 0f;
+        transform.position += direction.normalized * speed * Time.deltaTime;
+    }
+
+    void StopMoving()
+    {
+        if (AgentDriving) agent.isStopped = true;
     }
 
     void FaceDirection(Vector3 look)
@@ -272,6 +398,14 @@ public class MutantAI : MonoBehaviour
     // and has none, so there we look for the floor with a ray straight down instead.
     void SnapToGround()
     {
+        // With an agent the NavMesh decides the height, so the lift goes through its own
+        // offset. That offset is already in the model's own scale — no second multiply.
+        if (AgentDriving)
+        {
+            agent.baseOffset = IsKnockedOut ? knockedOverLift : 0f;
+            return;
+        }
+
         Vector3 p = transform.position;
 
         if (ground != null)
@@ -285,6 +419,9 @@ public class MutantAI : MonoBehaviour
         }
         else return;
 
+        // Multiplied by the model's own size: the boss is scaled up 2.6x, and so is the
+        // slab of body that would otherwise end up under the floor.
+        if (IsKnockedOut) p.y += knockedOverLift * transform.lossyScale.y;
         transform.position = p;
     }
 
@@ -297,5 +434,19 @@ public class MutantAI : MonoBehaviour
         Gizmos.DrawLine(eye, eye + left * detectionRange);
         Gizmos.DrawLine(eye, eye + right * detectionRange);
         Gizmos.DrawLine(eye + left * detectionRange, eye + right * detectionRange);
+
+        if (patrolPoints == null || patrolPoints.Length == 0) return;
+
+        // The route as a closed loop, so it is obvious at a glance where this one walks.
+        Gizmos.color = new Color(0.4f, 1f, 0.5f, 0.9f);
+        for (int i = 0; i < patrolPoints.Length; i++)
+        {
+            Transform point = patrolPoints[i];
+            Transform next = patrolPoints[(i + 1) % patrolPoints.Length];
+            if (point == null) continue;
+
+            Gizmos.DrawWireSphere(point.position, 0.6f);
+            if (next != null) Gizmos.DrawLine(point.position, next.position);
+        }
     }
 }

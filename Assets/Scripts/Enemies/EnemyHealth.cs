@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 // Health for an enemy (trail zombie or the final boss).
@@ -16,6 +17,20 @@ public class EnemyHealth : MonoBehaviour
     [Header("Boss bar")]
     public string bossName = "THE CREATURE";
 
+    [Header("Boss knockdowns")]
+    [Tooltip("Fractions of health where the boss goes down and a pillar can be brought over on it")]
+    public float[] knockdownAt = { 0.75f, 0.5f, 0.25f };
+
+    [Tooltip("Seconds it stays down")]
+    public float knockdownSeconds = 6f;
+
+    [Tooltip("Shown on the boss bar while it is down")]
+    public string knockdownHint = "DOWN — BRING A PILLAR OVER ON IT";
+
+    [Tooltip("Seconds between the boss dying and the win screen. The screen freezes the game, " +
+             "so without this the pillar stops in mid-air.")]
+    public float winDelay = 3f;
+
     [Header("Head bar (zombies)")]
     public float headHeight = 2.2f;   // how high above the pivot the bar floats
 
@@ -30,14 +45,19 @@ public class EnemyHealth : MonoBehaviour
 
     private int hp;
     private bool dead = false;
+    private int nextKnockdown = 0;
     private Camera cam;
     private Animator anim;
+    private MutantAI ai;
+
+    public float HealthFraction => maxHP > 0 ? (float)hp / maxHP : 0f;
 
     void Awake()
     {
         hp = maxHP;
         cam = Camera.main;
         anim = GetComponent<Animator>();
+        ai = GetComponent<MutantAI>();
     }
 
     public void TakeDamage(int dmg)
@@ -56,26 +76,53 @@ public class EnemyHealth : MonoBehaviour
             }
         }
 
-        if (hp <= 0) Die();
+        if (hp > 0) CheckKnockdown();
+        else Die();
+    }
+
+    // One heavy hit can cross two thresholds at once, so this walks past every one it has
+    // gone under rather than only the next in line.
+    void CheckKnockdown()
+    {
+        if (!isBoss || ai == null) return;
+
+        bool crossed = false;
+        while (nextKnockdown < knockdownAt.Length && HealthFraction <= knockdownAt[nextKnockdown])
+        {
+            nextKnockdown++;
+            crossed = true;
+        }
+
+        if (crossed) ai.KnockOut(knockdownSeconds);
     }
 
     void Die()
     {
         dead = true;
-        MutantAI ai = GetComponent<MutantAI>();
-        if (ai != null) ai.enabled = false;
         foreach (Collider c in GetComponentsInChildren<Collider>()) c.enabled = false;
 
-        // play the death animation only if this controller has a "die" trigger
-        // (the boss's MutantController doesn't — avoids a console warning)
-        if (anim != null && HasParam(anim, "die")) anim.SetTrigger("die");
+        if (anim != null && HasParam(anim, "die"))
+        {
+            if (ai != null) ai.enabled = false;
+            anim.SetTrigger("die");
+        }
+        else if (ai != null)
+        {
+            ai.KnockOut(999f);   // this rig has no death clip, so it goes down like a knockdown
+        }
 
-        if (isBoss && GameManager.Instance != null)
-            GameManager.Instance.Win();
+        if (isBoss && GameManager.Instance != null) StartCoroutine(WinAfterAMoment());
 
         OnDeath?.Invoke();   // let listeners react (the arena uses this to return to the forest)
 
-        Destroy(gameObject, removeDelay);
+        // It has to outlive the win delay, or the coroutine dies with it.
+        Destroy(gameObject, Mathf.Max(removeDelay, winDelay + 0.2f));
+    }
+
+    IEnumerator WinAfterAMoment()
+    {
+        yield return new WaitForSeconds(winDelay);
+        if (GameManager.Instance != null) GameManager.Instance.Win();
     }
 
     static bool HasParam(Animator a, string param)
@@ -87,7 +134,7 @@ public class EnemyHealth : MonoBehaviour
 
     void OnGUI()
     {
-        if (dead) return;
+        if (dead || Hud.Hidden) return;
         if (isBoss) DrawBossBar();
         else if (hp < maxHP) DrawHeadBar();   // zombies: only after first hit
     }
@@ -95,41 +142,22 @@ public class EnemyHealth : MonoBehaviour
     void DrawBossBar()
     {
         float w = Screen.width * 0.5f, h = 24f;
-        float x = (Screen.width - w) / 2f, y = 22f;
-        float frac = (float)hp / maxHP;
+        float x = (Screen.width - w) / 2f;
+        float y = Screen.height - 70f;   // along the bottom, clear of the player's own bars
 
-        GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        GUI.DrawTexture(new Rect(x - 3, y - 3, w + 6, h + 6), Texture2D.whiteTexture);
-        GUI.color = new Color(0.25f, 0f, 0f, 1f);
-        GUI.DrawTexture(new Rect(x, y, w, h), Texture2D.whiteTexture);
-        GUI.color = new Color(0.85f, 0.12f, 0.12f, 1f);
-        GUI.DrawTexture(new Rect(x, y, w * frac, h), Texture2D.whiteTexture);
-        GUI.color = Color.white;
+        Hud.Bar(new Rect(x, y, w, h), HealthFraction, new Color(0.85f, 0.12f, 0.12f));
 
+        bool down = ai != null && ai.IsKnockedOut;
         GUIStyle st = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, fontSize = 15 };
-        st.normal.textColor = Color.white;
-        GUI.Label(new Rect(x, y, w, h), bossName, st);
+        st.normal.textColor = down ? new Color(1f, 0.9f, 0.4f) : Color.white;
+        GUI.Label(new Rect(x, y, w, h), down ? knockdownHint : bossName, st);
     }
 
     void DrawHeadBar()
     {
         if (cam == null) cam = Camera.main;
-        if (cam == null) return;
 
-        Vector3 sp = cam.WorldToScreenPoint(transform.position + Vector3.up * headHeight);
-        if (sp.z <= 0f) return;   // behind the camera
-
-        float w = 64f, h = 8f;
-        float x = sp.x - w / 2f;
-        float y = Screen.height - sp.y - h;   // OnGUI y is top-down
-        float frac = (float)hp / maxHP;
-
-        GUI.color = new Color(0f, 0f, 0f, 0.7f);
-        GUI.DrawTexture(new Rect(x - 1, y - 1, w + 2, h + 2), Texture2D.whiteTexture);
-        GUI.color = new Color(0.2f, 0f, 0f, 1f);
-        GUI.DrawTexture(new Rect(x, y, w, h), Texture2D.whiteTexture);
-        GUI.color = new Color(0.85f, 0.12f, 0.12f, 1f);
-        GUI.DrawTexture(new Rect(x, y, w * frac, h), Texture2D.whiteTexture);
-        GUI.color = Color.white;
+        Hud.BarAbove(cam, transform.position + Vector3.up * headHeight,
+                     (float)hp / maxHP, new Color(0.85f, 0.12f, 0.12f));
     }
 }
