@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // Dramatic boss entrance. Put this on the Mutant (the boss) — it runs the moment
 // the boss is revealed (SetActive true by ObjectiveLight):
@@ -22,6 +23,21 @@ public class BossIntro : MonoBehaviour
     public float roarPause = 0.8f;
     [Tooltip("Play the attack/swipe as a 'roar' at the top of the rise")]
     public bool roarAtTop = true;
+
+    [Header("What happens once it is up")]
+    [Tooltip("Leave empty and the creature simply starts fighting here. Name a scene and it " +
+             "knocks the player down instead and that scene loads — this is how the forest " +
+             "hands over to the chase.")]
+    public string loadSceneWhenDone = "";
+
+    [Tooltip("What the knockdown blow costs. It can never be the hit that kills you.")]
+    public int knockdownDamage = 20;
+
+    [Tooltip("Objective shown while you are on the floor")]
+    public string knockdownObjective = "RUN!";
+
+    [Tooltip("Seconds the player sees that before the next scene loads")]
+    public float knockdownPause = 1.8f;
 
     private MutantAI ai;
     private Animator animator;
@@ -77,7 +93,29 @@ public class BossIntro : MonoBehaviour
         if (roarAtTop && animator != null) animator.SetTrigger("attack");
         yield return new WaitForSeconds(roarPause);
 
-        // unleash it
-        if (ai != null) ai.enabled = true;
+        if (string.IsNullOrEmpty(loadSceneWhenDone))
+        {
+            if (ai != null) ai.enabled = true;    // unleash it
+            yield break;
+        }
+
+        yield return KnockThePlayerDown();
+    }
+
+    // The forest ends with a beating, not a fight: one blow, "RUN!", and the chase begins.
+    IEnumerator KnockThePlayerDown()
+    {
+        if (GameManager.Instance != null)
+        {
+            // Dying here would freeze the game before the chase ever loaded, so the blow
+            // is capped at whatever leaves the player standing.
+            int survivable = Mathf.Min(knockdownDamage, GameManager.Instance.currentHP - 1);
+            if (survivable > 0) GameManager.Instance.TakeDamage(survivable);
+
+            GameManager.Instance.SetObjective(knockdownObjective);
+        }
+
+        yield return new WaitForSeconds(knockdownPause);
+        SceneManager.LoadScene(loadSceneWhenDone);
     }
 }

@@ -7258,6 +7258,9 @@ MonoBehaviour:
   wanderRadius: 12
   wanderSpeed: 1
   pauseRange: {x: 1.5, y: 4}
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 0
   alwaysAggressive: 1
 --- !u!136 &590762091
 CapsuleCollider:
@@ -7282,6 +7285,27 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 1, z: 0}
+--- !u!114 &590762092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 590762088}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87dbc1e69b84b8f46a89c2c679ec69d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossIntro
+  bossScale: 2.6
+  startSunkDepth: 3.5
+  riseTime: 3
+  roarPause: 0.8
+  roarAtTop: 1
+  loadSceneWhenDone: Scene3_chase
+  knockdownDamage: 20
+  knockdownObjective: RUN!
+  knockdownPause: 1.8
 --- !u!1001 &597378481
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12823,7 +12847,6 @@ GameObject:
   - component: {fileID: 1017175475}
   - component: {fileID: 1017175477}
   - component: {fileID: 1017175478}
-  - component: {fileID: 1017175479}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -12847,7 +12870,7 @@ MonoBehaviour:
   currentHP: 100
   maxArmour: 50
   currentArmour: 0
-  objectiveText: You need to reach the light
+  objectiveText: Defeat 3 zombies
 --- !u!4 &1017175476
 Transform:
   m_ObjectHideFlags: 0
@@ -12889,18 +12912,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a45e01e08962615498da1ccdf7aab554, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RestorePlayerPositionOnReturn
---- !u!114 &1017175479
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1017175474}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c32214fed87c7f94c85bc47c88529a5c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ForestEndState
 --- !u!1 &1019917988
 GameObject:
   m_ObjectHideFlags: 0
@@ -17341,6 +17352,7 @@ MonoBehaviour:
   throwSpeed: 22
   upwardArc: 0.2
   cooldown: 0.6
+  requiresAiming: 1
 --- !u!114 &1325254445
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -22225,6 +22237,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 311312753f503c642a52b163530ca7ed, type: 3}
       insertIndex: -1
       addedObject: {fileID: 590762089}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 311312753f503c642a52b163530ca7ed, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 590762092}
   m_SourcePrefab: {fileID: 100100000, guid: 311312753f503c642a52b163530ca7ed, type: 3}
 --- !u!4 &1717274354 stripped
 Transform:
@@ -23839,6 +23854,7 @@ GameObject:
   - component: {fileID: 1836499503}
   - component: {fileID: 1836499502}
   - component: {fileID: 1836499501}
+  - component: {fileID: 1836499504}
   m_Layer: 7
   m_Name: Terrain
   m_TagString: Untagged
@@ -23921,6 +23937,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1836499504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1836499500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87dbc1e69b84b8f46a89c2c679ec69d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossIntro
+  bossScale: 2.6
+  startSunkDepth: 3.5
+  riseTime: 3
+  roarPause: 0.8
+  roarAtTop: 1
+  loadSceneWhenDone: Scene3_Chase
+  knockdownDamage: 20
+  knockdownObjective: RUN!
+  knockdownPause: 1.8
 --- !u!4 &1836836216 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 459816, guid: aae542b8a65f39b49b008fa689ce9804, type: 3}

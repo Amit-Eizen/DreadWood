@@ -41,6 +41,10 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         isWin = false;
         isLose = false;
+
+        // Checkpoints are per-scene. Without this, one reached in an earlier scene would
+        // still be "the last one" here and revive the player into the wrong level.
+        Checkpoint.Forget();
     }
 
     // On scene start, load the health saved in PlayerProgress (it carries over from
@@ -125,8 +129,25 @@ public class GameManager : MonoBehaviour
     public void Lose()
     {
         if (isWin || isLose) return;
+
+        // Past a checkpoint, dying is a setback rather than an ending — you wake up back
+        // there with the health and armour you had when you passed it.
+        if (Checkpoint.Reached) { ReviveAtCheckpoint(); return; }
+
         isLose = true;
         FreezeGame();
+    }
+
+    void ReviveAtCheckpoint()
+    {
+        currentHP = Mathf.Clamp(Checkpoint.Health, 1, maxHP);
+        currentArmour = Mathf.Clamp(Checkpoint.Armour, 0, maxArmour);
+        SaveHealth();
+        SaveArmour();
+
+        PlayerTeleport.MoveTo(Checkpoint.Position);
+        damageFlash = 0f;
+        SetObjective(Checkpoint.Message);
     }
 
     void FreezeGame()
@@ -137,15 +158,15 @@ public class GameManager : MonoBehaviour
 
         // Disable the player's controller/input so it can't re-lock the cursor
         // (Starter Assets re-locks the cursor on focus, which blocks the button).
-        GameObject p = GameObject.FindWithTag("Player");
-        if (p == null) p = GameObject.Find("PlayerArmature");
-        if (p != null)
-            foreach (MonoBehaviour mb in p.GetComponents<MonoBehaviour>())
-            {
-                string n = mb.GetType().Name;
-                if (n == "ThirdPersonController" || n == "StarterAssetsInputs")
-                    mb.enabled = false;
-            }
+        Transform player = PlayerTeleport.Find();
+        if (player == null) return;
+
+        foreach (MonoBehaviour script in player.GetComponents<MonoBehaviour>())
+        {
+            string name = script.GetType().Name;
+            if (name == "ThirdPersonController" || name == "StarterAssetsInputs")
+                script.enabled = false;
+        }
     }
 
     public void Restart()

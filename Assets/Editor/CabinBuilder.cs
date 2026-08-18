@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEditor;
-using System.IO;
 
 // One-click cabin builder for DreadWood.
 // Builds a simple wooden cabin from primitives: floor, 4 walls with a doorway
@@ -87,11 +86,11 @@ public class CabinBuilder : EditorWindow
         cabin.transform.position = worldPos;
 
         // Materials
-        Material wood = GetTexturedMat("M_CabinWood", "Assets/NatureStarterKit2/Textures/bark02.tga", new Vector2(4f, 4f), new Color(0.45f, 0.30f, 0.17f));
-        Material roofMat = GetMat("M_CabinRoof", new Color(0.25f, 0.15f, 0.10f));
-        Material bedFrame = GetMat("M_BedFrame", new Color(0.20f, 0.12f, 0.07f));
-        Material mattress = GetMat("M_Mattress", new Color(0.78f, 0.74f, 0.66f));
-        Material pillow = GetMat("M_Pillow", new Color(0.90f, 0.90f, 0.88f));
+        Material wood = BuildingBlocks.GetTexturedMaterial("M_CabinWood", "Assets/NatureStarterKit2/Textures/bark02.tga", new Vector2(4f, 4f), new Color(0.45f, 0.30f, 0.17f));
+        Material roofMat = BuildingBlocks.GetMaterial("M_CabinRoof", new Color(0.25f, 0.15f, 0.10f));
+        Material bedFrame = BuildingBlocks.GetMaterial("M_BedFrame", new Color(0.20f, 0.12f, 0.07f));
+        Material mattress = BuildingBlocks.GetMaterial("M_Mattress", new Color(0.78f, 0.74f, 0.66f));
+        Material pillow = BuildingBlocks.GetMaterial("M_Pillow", new Color(0.90f, 0.90f, 0.88f));
 
         float W = interiorWidth, D = interiorDepth, H = floorHeight, T = wallThickness;
         float Wt = W + 2f * T;   // outer width
@@ -99,27 +98,27 @@ public class CabinBuilder : EditorWindow
         float totalH = H * Mathf.Max(1, floors);   // outer walls run the full height of the house
 
         // Floor (top surface at local y = 0)
-        Box(cabin, "Floor", new Vector3(0f, -0.1f, 0f), new Vector3(Wt, 0.2f, Dt), Quaternion.identity, wood);
+        BuildingBlocks.Box(cabin, "Floor", new Vector3(0f, -0.1f, 0f), new Vector3(Wt, 0.2f, Dt), Quaternion.identity, wood);
 
         // Back wall (-Z)
-        Box(cabin, "Wall_Back", new Vector3(0f, totalH / 2f, -(D / 2f + T / 2f)), new Vector3(Wt, totalH, T), Quaternion.identity, wood);
+        BuildingBlocks.Box(cabin, "Wall_Back", new Vector3(0f, totalH / 2f, -(D / 2f + T / 2f)), new Vector3(Wt, totalH, T), Quaternion.identity, wood);
         // Left wall (-X)
-        Box(cabin, "Wall_Left", new Vector3(-(W / 2f + T / 2f), totalH / 2f, 0f), new Vector3(T, totalH, D), Quaternion.identity, wood);
+        BuildingBlocks.Box(cabin, "Wall_Left", new Vector3(-(W / 2f + T / 2f), totalH / 2f, 0f), new Vector3(T, totalH, D), Quaternion.identity, wood);
         // Right wall (+X)
-        Box(cabin, "Wall_Right", new Vector3(W / 2f + T / 2f, totalH / 2f, 0f), new Vector3(T, totalH, D), Quaternion.identity, wood);
+        BuildingBlocks.Box(cabin, "Wall_Right", new Vector3(W / 2f + T / 2f, totalH / 2f, 0f), new Vector3(T, totalH, D), Quaternion.identity, wood);
 
         // Front wall (+Z) WITH a doorway: two side segments + a lintel above the door
         float frontZ = D / 2f + T / 2f;
         float sideSegW = (Wt - doorWidth) / 2f;
-        Box(cabin, "Wall_Front_L", new Vector3(-(doorWidth / 2f + sideSegW / 2f), totalH / 2f, frontZ), new Vector3(sideSegW, totalH, T), Quaternion.identity, wood);
-        Box(cabin, "Wall_Front_R", new Vector3(doorWidth / 2f + sideSegW / 2f, totalH / 2f, frontZ), new Vector3(sideSegW, totalH, T), Quaternion.identity, wood);
+        BuildingBlocks.Box(cabin, "Wall_Front_L", new Vector3(-(doorWidth / 2f + sideSegW / 2f), totalH / 2f, frontZ), new Vector3(sideSegW, totalH, T), Quaternion.identity, wood);
+        BuildingBlocks.Box(cabin, "Wall_Front_R", new Vector3(doorWidth / 2f + sideSegW / 2f, totalH / 2f, frontZ), new Vector3(sideSegW, totalH, T), Quaternion.identity, wood);
         float lintelH = totalH - doorHeight;
         if (lintelH > 0.01f)
-            Box(cabin, "Wall_Front_Lintel", new Vector3(0f, doorHeight + lintelH / 2f, frontZ), new Vector3(doorWidth, lintelH, T), Quaternion.identity, wood);
+            BuildingBlocks.Box(cabin, "Wall_Front_Lintel", new Vector3(0f, doorHeight + lintelH / 2f, frontZ), new Vector3(doorWidth, lintelH, T), Quaternion.identity, wood);
 
         // A wooden door, hinged on the left of the opening and left ajar.
         // Decorative only (collider removed) so it never blocks the walk-through.
-        Material doorMat = GetMat("M_CabinDoor", new Color(0.30f, 0.19f, 0.10f));
+        Material doorMat = BuildingBlocks.GetMaterial("M_CabinDoor", new Color(0.30f, 0.19f, 0.10f));
         GameObject hinge = new GameObject("Door");
         hinge.transform.SetParent(cabin.transform, false);
         hinge.transform.localPosition = new Vector3(-doorWidth / 2f, doorHeight / 2f, frontZ);
@@ -150,19 +149,19 @@ public class CabinBuilder : EditorWindow
             for (int i = 0; i < stepCount; i++)
             {
                 float z0 = stairStartZ + i * stepD;
-                BoxBetween(cabin, "Step_" + (i + 1),
+                BuildingBlocks.BoxBetween(cabin, "Step_" + (i + 1),
                     new Vector3(stairMinX, 0f, z0),
                     new Vector3(W / 2f, (i + 1) * stepH, z0 + stepD), wood);
             }
 
             // Floor of the level above — its top surface sits exactly at y = H.
             float slabBottom = H - 0.2f;
-            BoxBetween(cabin, "Floor2_Left",
+            BuildingBlocks.BoxBetween(cabin, "Floor2_Left",
                 new Vector3(-Wt / 2f, slabBottom, -Dt / 2f), new Vector3(stairMinX, H, Dt / 2f), wood);
-            BoxBetween(cabin, "Floor2_Back",
+            BuildingBlocks.BoxBetween(cabin, "Floor2_Back",
                 new Vector3(stairMinX, slabBottom, -Dt / 2f), new Vector3(Wt / 2f, H, stairStartZ), wood);
             if (Dt / 2f - stairEndZ > 0.05f)
-                BoxBetween(cabin, "Floor2_Front",
+                BuildingBlocks.BoxBetween(cabin, "Floor2_Front",
                     new Vector3(stairMinX, slabBottom, stairEndZ), new Vector3(Wt / 2f, H, Dt / 2f), wood);
         }
 
@@ -172,17 +171,17 @@ public class CabinBuilder : EditorWindow
         float slopeLen = Mathf.Sqrt(halfW * halfW + roofRise * roofRise) + 0.5f; // +overlap at ridge/eave
         float overhang = 0.5f;
         Vector3 roofSize = new Vector3(slopeLen, 0.15f, Dt + 2f * overhang);
-        Box(cabin, "Roof_L", new Vector3(-halfW / 2f, totalH + roofRise / 2f, 0f), roofSize, Quaternion.Euler(0f, 0f, angleDeg), roofMat);
-        Box(cabin, "Roof_R", new Vector3(halfW / 2f, totalH + roofRise / 2f, 0f), roofSize, Quaternion.Euler(0f, 0f, -angleDeg), roofMat);
+        BuildingBlocks.Box(cabin, "Roof_L", new Vector3(-halfW / 2f, totalH + roofRise / 2f, 0f), roofSize, Quaternion.Euler(0f, 0f, angleDeg), roofMat);
+        BuildingBlocks.Box(cabin, "Roof_R", new Vector3(halfW / 2f, totalH + roofRise / 2f, 0f), roofSize, Quaternion.Euler(0f, 0f, -angleDeg), roofMat);
 
         // Bed in the back-left corner, on the TOP floor — the player wakes up there and has
         // to come down the stairs. The stairs are on the +X side, so they never clash.
         float bedFloorY = (floors > 1) ? H : 0f;
         float bedX = -(W / 2f - 0.7f);
         float bedZ = -(D / 2f - 1.2f);
-        Box(cabin, "Bed_Frame", new Vector3(bedX, bedFloorY + 0.25f, bedZ), new Vector3(1.3f, 0.5f, 2.2f), Quaternion.identity, bedFrame);
-        Box(cabin, "Bed_Mattress", new Vector3(bedX, bedFloorY + 0.62f, bedZ), new Vector3(1.2f, 0.25f, 2.0f), Quaternion.identity, mattress);
-        Box(cabin, "Bed_Pillow", new Vector3(bedX, bedFloorY + 0.78f, bedZ - 0.7f), new Vector3(1.0f, 0.18f, 0.5f), Quaternion.identity, pillow);
+        BuildingBlocks.Box(cabin, "Bed_Frame", new Vector3(bedX, bedFloorY + 0.25f, bedZ), new Vector3(1.3f, 0.5f, 2.2f), Quaternion.identity, bedFrame);
+        BuildingBlocks.Box(cabin, "Bed_Mattress", new Vector3(bedX, bedFloorY + 0.62f, bedZ), new Vector3(1.2f, 0.25f, 2.0f), Quaternion.identity, mattress);
+        BuildingBlocks.Box(cabin, "Bed_Pillow", new Vector3(bedX, bedFloorY + 0.78f, bedZ - 0.7f), new Vector3(1.0f, 0.18f, 0.5f), Quaternion.identity, pillow);
 
         // Optionally move the player next to the bed, facing the door (+Z / north).
         // With two floors that is upstairs, so the game opens by walking down.
@@ -216,54 +215,4 @@ public class CabinBuilder : EditorWindow
         if (cabin != null) Undo.DestroyObjectImmediate(cabin);
     }
 
-    // Same as Box, but you give the two opposite corners instead of a centre and a size.
-    // Much easier to read when building slabs around a hole.
-    static void BoxBetween(GameObject parent, string name, Vector3 min, Vector3 max, Material mat)
-    {
-        Box(parent, name, (min + max) * 0.5f, max - min, Quaternion.identity, mat);
-    }
-
-    // Creates a cube primitive (keeps its BoxCollider) parented under the cabin
-    static void Box(GameObject parent, string name, Vector3 localCenter, Vector3 size, Quaternion localRot, Material mat)
-    {
-        GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        go.name = name;
-        go.transform.SetParent(parent.transform, false);
-        go.transform.localPosition = localCenter;
-        go.transform.localRotation = localRot;
-        go.transform.localScale = size;
-        if (mat != null) go.GetComponent<MeshRenderer>().sharedMaterial = mat;
-        go.isStatic = true;
-    }
-
-    // Like GetMat but applies a tiling texture (e.g. wood) if the texture exists
-    static Material GetTexturedMat(string name, string texPath, Vector2 tiling, Color fallback)
-    {
-        Material m = GetMat(name, fallback);
-        Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
-        if (tex != null)
-        {
-            m.mainTexture = tex;
-            m.color = fallback;             // tint the texture warm so bark reads as wood
-            m.mainTextureScale = tiling;    // repeat the wood grain
-        }
-        return m;
-    }
-
-    // Loads an existing material asset or creates+saves a new Standard one
-    static Material GetMat(string name, Color color)
-    {
-        const string dir = "Assets/DreadWood/Materials";
-        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-        string path = dir + "/" + name + ".mat";
-
-        Material existing = AssetDatabase.LoadAssetAtPath<Material>(path);
-        if (existing != null) { existing.color = color; return existing; }
-
-        Material m = new Material(Shader.Find("Standard"));
-        m.color = color;
-        m.SetFloat("_Glossiness", 0.1f); // matte, not shiny
-        AssetDatabase.CreateAsset(m, path);
-        return m;
-    }
 }

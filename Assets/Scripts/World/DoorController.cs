@@ -36,9 +36,7 @@ public class DoorController : MonoBehaviour
 
     void Start()
     {
-        GameObject p = GameObject.FindWithTag("Player");
-        if (p == null) p = GameObject.Find("PlayerArmature");
-        if (p != null) player = p.transform;
+        player = PlayerTeleport.Find();
     }
 
     void Update()

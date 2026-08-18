@@ -49,9 +49,7 @@ public class ForestZombie : MonoBehaviour
             return;
         }
 
-        GameObject p = GameObject.FindWithTag("Player");
-        if (p == null) p = GameObject.Find("PlayerArmature");
-        if (p != null) player = p.transform;
+        player = PlayerTeleport.Find();
 
         // Killing this zombie out here — with a thrown rock, say — counts towards the
         // objective too, not only beating it in the arena.
