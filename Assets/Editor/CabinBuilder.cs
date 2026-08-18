@@ -126,11 +126,25 @@ public class CabinBuilder : EditorWindow
         GameObject panel = GameObject.CreatePrimitive(PrimitiveType.Cube);
         panel.name = "DoorPanel";
         panel.transform.SetParent(hinge.transform, false);
-        panel.transform.localPosition = new Vector3(doorWidth / 2f, 0f, 0.04f);
+        // Clear of the wall's own thickness — a panel sunk inside the frame is jammed and
+        // no amount of motor force will swing it.
+        panel.transform.localPosition = new Vector3(doorWidth / 2f, 0f, T / 2f + 0.06f);
         panel.transform.localScale = new Vector3(doorWidth, doorHeight, 0.08f);
         panel.GetComponent<MeshRenderer>().sharedMaterial = doorMat;
-        // keep the panel's BoxCollider so a shut door physically blocks the doorway
-        hinge.AddComponent<DoorController>(); // press Y to open/close when the player is near
+        panel.isStatic = false;   // it swings, so it must not be batched into the walls
+
+        // A real hinge rather than a scripted rotation: the panel gets a body, the joint pins
+        // its left edge, and the limits stop it at shut and at fully open.
+        Rigidbody panelBody = panel.AddComponent<Rigidbody>();
+        panelBody.mass = 20f;
+
+        HingeJoint door = panel.AddComponent<HingeJoint>();
+        door.anchor = new Vector3(-0.5f, 0f, 0f);   // the cube's own left edge, before scaling
+        door.axis = new Vector3(0f, -1f, 0f);   // swings outward, away from the wall behind it
+        door.useLimits = true;
+        door.limits = new JointLimits { min = 0f, max = 95f };
+
+        panel.AddComponent<DoorController>();   // press Y nearby and the motor swings it open
 
         // ---- Upper floor ----
         // The stairs hug the right (+X) wall and climb from the back of the room forwards.

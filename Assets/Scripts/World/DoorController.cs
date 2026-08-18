@@ -1,34 +1,31 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// A door the player opens/closes by pressing Y when nearby.
-// Put this on the door's hinge object (the pivot the panel is parented to).
-// While the player is in range a small "Press Y" prompt is shown on screen.
-// The panel keeps its collider, so a shut door physically blocks the doorway;
-// swinging open moves the collider aside and clears the way (entry/exit).
+// A door on a real hinge. Press Y nearby and the joint's motor swings it open, then reverses
+// and lets it fall shut a few seconds later. Goes on the door panel itself — the object with
+// the Rigidbody — not on a parent pivot.
+[RequireComponent(typeof(HingeJoint))]
 public class DoorController : MonoBehaviour
 {
-    [Tooltip("Local Y angle when shut")]
-    public float closedAngle = 0f;
-
-    [Tooltip("Local Y angle when open")]
-    public float openAngle = -95f;
-
     [Tooltip("How near the player must be to interact")]
     public float interactDistance = 3.5f;
-
-    [Tooltip("Swing speed in degrees per second")]
-    public float speed = 220f;
 
     [Tooltip("Key that opens the door")]
     public Key openKey = Key.Y;
 
-    [Tooltip("Seconds after opening before the door swings shut by itself")]
+    [Tooltip("Seconds after opening before it swings shut by itself")]
     public float autoCloseDelay = 4f;
+
+    [Tooltip("Swing speed in degrees per second")]
+    public float swingSpeed = 200f;
+
+    [Tooltip("How hard the motor pushes. Too low and the door stalls against its own weight.")]
+    public float motorForce = 40f;
 
     [Tooltip("On-screen prompt font size")]
     public int promptFontSize = 20;
 
+    private HingeJoint hinge;
     private Transform player;
     private bool isOpen = false;
     private bool playerNear = false;
@@ -36,6 +33,8 @@ public class DoorController : MonoBehaviour
 
     void Start()
     {
+        hinge = GetComponent<HingeJoint>();
+        hinge.useMotor = true;
         player = PlayerTeleport.Find();
     }
 
@@ -44,7 +43,6 @@ public class DoorController : MonoBehaviour
         playerNear = player != null &&
                      Vector3.Distance(transform.position, player.position) < interactDistance;
 
-        // Press Y to open while near; the door swings shut by itself a few seconds later
         if (playerNear && !isOpen && Keyboard.current != null && Keyboard.current[openKey].wasPressedThisFrame)
         {
             isOpen = true;
@@ -57,14 +55,17 @@ public class DoorController : MonoBehaviour
             if (openTimer <= 0f) isOpen = false;
         }
 
-        float targetAngle = isOpen ? openAngle : closedAngle;
-        transform.localRotation = Quaternion.RotateTowards(
-            transform.localRotation, Quaternion.Euler(0f, targetAngle, 0f), speed * Time.deltaTime);
+        // The motor drives it one way or the other and the joint limits catch it at each end,
+        // so the door is never placed by hand — the physics decides where it actually is.
+        JointMotor motor = hinge.motor;
+        motor.targetVelocity = isOpen ? swingSpeed : -swingSpeed;
+        motor.force = motorForce;
+        hinge.motor = motor;
     }
 
     void OnGUI()
     {
-        if (!playerNear || isOpen) return; // prompt only when near and still shut
+        if (Hud.Hidden || !playerNear || isOpen) return;
 
         string msg = "Press Y to open";
         GUIStyle style = new GUIStyle(GUI.skin.label)
@@ -77,7 +78,6 @@ public class DoorController : MonoBehaviour
         float w = 320f, h = 36f;
         Rect r = new Rect((Screen.width - w) / 2f, Screen.height - 110f, w, h);
 
-        // drop shadow for readability
         style.normal.textColor = Color.black;
         GUI.Label(new Rect(r.x + 1.5f, r.y + 1.5f, r.width, r.height), msg, style);
         style.normal.textColor = Color.white;
