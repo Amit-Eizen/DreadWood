@@ -1,10 +1,9 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-// Trigger zone at the end point (the light / beacon).
-// When the player arrives, the hidden BOSS is revealed and the final fight begins
-// — the guiding beacon switches OFF so only the world's dim atmosphere remains,
-// making the boss fight darker and tenser. The player must defeat the boss to win.
-// (If no boss is assigned it just wins immediately, useful for testing the loop.)
+// The trigger at the portal. Reach it with enough zombies beaten and the portal dies and the
+// next scene loads. Arrive early and it says how many are still missing and lets you walk away.
 [RequireComponent(typeof(Collider))]
 public class ObjectiveLight : MonoBehaviour
 {
@@ -15,6 +14,12 @@ public class ObjectiveLight : MonoBehaviour
     [Tooltip("Shown when the player arrives too early. {0} is how many are still missing.")]
     public string notReadyMessage = "The portal is sealed — {0} zombies left";
 
+    [Tooltip("Scene to load once the portal dies. Set this and the creature is skipped entirely.")]
+    public string nextScene = "";
+
+    [Tooltip("Seconds between the portal going out and the load, so it lands as a beat")]
+    public float pauseBeforeLoading = 1.2f;
+
     [Tooltip("The boss mutant to reveal (kept disabled until the player arrives)")]
     public GameObject boss;
 
@@ -22,7 +27,7 @@ public class ObjectiveLight : MonoBehaviour
     public string bossObjective = "It found you — DEFEAT IT!";
 
     [Header("When the fight begins")]
-    [Tooltip("Turn these OFF when the boss appears — e.g. the glowing Beacon + its light")]
+    [Tooltip("Turn these OFF when the boss appears — the portal and its light")]
     public GameObject[] turnOffOnBoss;
 
     [Tooltip("Optional: turn these ON for the fight — e.g. a dim arena light")]
@@ -51,20 +56,21 @@ public class ObjectiveLight : MonoBehaviour
 
         triggered = true;
 
-        if (boss != null)
-        {
-            boss.SetActive(true);                              // the creature appears
+        // the portal goes out — what you walked all this way towards was the trap
+        foreach (GameObject go in turnOffOnBoss) if (go != null) go.SetActive(false);
+        foreach (GameObject go in turnOnOnBoss) if (go != null) go.SetActive(true);
 
-            // the guiding light dies — only the world's atmosphere remains
-            foreach (GameObject go in turnOffOnBoss) if (go != null) go.SetActive(false);
-            foreach (GameObject go in turnOnOnBoss) if (go != null) go.SetActive(true);
+        if (GameManager.Instance != null) GameManager.Instance.SetObjective(bossObjective);
 
-            if (GameManager.Instance != null) GameManager.Instance.SetObjective(bossObjective);
-        }
-        else if (GameManager.Instance != null)
-        {
-            GameManager.Instance.Win();                        // no boss -> just win (test mode)
-        }
+        if (!string.IsNullOrEmpty(nextScene)) StartCoroutine(LoadNextScene());
+        else if (boss != null) boss.SetActive(true);           // the creature appears instead
+        else if (GameManager.Instance != null) GameManager.Instance.Win();   // test mode
+    }
+
+    IEnumerator LoadNextScene()
+    {
+        yield return new WaitForSeconds(pauseBeforeLoading);
+        SceneManager.LoadScene(nextScene);
     }
 
     int ZombiesStillNeeded()

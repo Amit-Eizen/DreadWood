@@ -16,6 +16,9 @@ public class CollapsingBarrier : MonoBehaviour
     [Tooltip("How long they stay down")]
     public float knockOutSeconds = 3f;
 
+    [Tooltip("Shove given to the pieces. 0 and they just drop where they stood.")]
+    public float burstForce = 250f;
+
     private bool collapsed = false;
 
     void Awake()
@@ -31,13 +34,27 @@ public class CollapsingBarrier : MonoBehaviour
         Collapse();
     }
 
+    // Called by PlayerCombat when an axe swing lands on it. Wood against an axe is one blow.
+    public void TakeHit()
+    {
+        if (!collapsed) Collapse();
+    }
+
     void Collapse()
     {
         collapsed = true;
 
-        // Let go of every piece at once — the pile falls apart on its own from there.
+        // The outer shell is what a thrown rock actually hits. Once it is broken it has to
+        // stop being solid, or the pieces stay sealed inside it.
+        foreach (Collider shell in GetComponents<Collider>()) shell.enabled = false;
+
         foreach (Rigidbody piece in GetComponentsInChildren<Rigidbody>())
+        {
+            if (piece.transform == transform) continue;   // the shell itself stays put
+
             piece.isKinematic = false;
+            if (burstForce > 0f) piece.AddExplosionForce(burstForce, transform.position, 3f, 0.3f);
+        }
 
         foreach (MutantAI enemy in FindObjectsByType<MutantAI>(FindObjectsSortMode.None))
             if (Vector3.Distance(enemy.transform.position, transform.position) <= crushRadius)

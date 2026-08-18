@@ -196,6 +196,8 @@ public class GameManager : MonoBehaviour
     // ---------- HUD ----------
     void OnGUI()
     {
+        if (Hud.Hidden || HasEnded) return;
+
         if (damageFlash > 0f)
         {
             Color prev = GUI.color;

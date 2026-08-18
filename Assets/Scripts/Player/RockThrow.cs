@@ -88,17 +88,19 @@ public class RockThrow : MonoBehaviour
         return (toTarget + Vector3.up * upwardArc).normalized;
     }
 
+    // Only up when there is actually something to throw — the ROCKS counter already says
+    // when there is not, and an aiming dot you cannot use is just clutter.
     void OnGUI()
     {
-        if (!showCrosshair) return;
+        if (!showCrosshair || rockPrefab == null || throwPoint == null) return;
         if (requiresAiming && !PlayerAiming.IsAiming) return;
 
         PlayerProgressBetweenScenes progress = PlayerProgressBetweenScenes.Instance;
-        bool loaded = progress == null || progress.rockAmmo > 0;
+        if (progress != null && progress.rockAmmo <= 0) return;
 
         const float size = 6f;
         Color previous = GUI.color;
-        GUI.color = loaded ? new Color(1f, 1f, 1f, 0.85f) : new Color(1f, 0.4f, 0.4f, 0.85f);
+        GUI.color = new Color(1f, 1f, 1f, 0.85f);
         GUI.DrawTexture(new Rect(Screen.width / 2f - size / 2f, Screen.height / 2f - size / 2f,
                                  size, size), Texture2D.whiteTexture);
         GUI.color = previous;

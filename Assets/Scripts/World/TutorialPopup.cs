@@ -20,15 +20,28 @@ public class TutorialPopup : MonoBehaviour
 
     public string continueLabel = "CONTINUE";
 
+    [Tooltip("Show it the moment the scene loads, instead of waiting for the player to walk in")]
+    public bool showOnStart = false;
+
     private bool alreadyShown = false;
     private bool showing = false;
     private MonoBehaviour[] playerScripts;
+
+    // Nothing else should draw while the card is up. Hud.Suppressed reads this.
+    public static bool IsShowing { get; private set; }
+
+    void OnDisable() => IsShowing = false;
 
     // Makes the collider a trigger the moment the component is added, so it can't end up
     // in the scene as a solid wall by mistake.
     void Reset()
     {
         GetComponent<Collider>().isTrigger = true;
+    }
+
+    void Start()
+    {
+        if (showOnStart) Show();
     }
 
     void OnTriggerEnter(Collider other)
@@ -42,6 +55,7 @@ public class TutorialPopup : MonoBehaviour
     void Show()
     {
         showing = true;
+        IsShowing = true;
         alreadyShown = true;
 
         Time.timeScale = 0f;
@@ -57,6 +71,7 @@ public class TutorialPopup : MonoBehaviour
     void Continue()
     {
         showing = false;
+        IsShowing = false;
         PlayerControls.SetEnabled(playerScripts, true);
 
         Cursor.lockState = CursorLockMode.Locked;
