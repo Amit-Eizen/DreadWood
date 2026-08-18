@@ -15,17 +15,27 @@ public class MainMenu : MonoBehaviour
 {
     enum State { Main, Playing, Paused }
 
+    // The same menu code serves three jobs, so each scene says which one it is here.
+    public enum Kind { InGame, TitleScene, VictoryScene }
+
+    [Header("What this menu is")]
+    [Tooltip("Title = the opening scene. Victory = the ending scene. In Game = pause and death only.")]
+    public Kind kind = Kind.InGame;
+
+    [Tooltip("Scene that START and PLAY AGAIN load")]
+    public string firstGameScene = "Scene1_Forest";
+
     [Header("Text")]
     public string title = "DREADWOOD";
     public string subtitle = "Escape the woods. Find the portal.";
 
+    [Header("Victory scene")]
+    public string victoryTitle = "YOU ESCAPED";
+    public string victorySubtitle = "The woods are behind you.";
+
     [Header("Background (main menu)")]
     [Tooltip("Optional image behind the MAIN menu. If empty, the live game view shows through.")]
     public Texture2D backgroundImage;
-
-    [Header("Behaviour")]
-    [Tooltip("Show the main menu at startup")]
-    public bool showMainOnStart = true;
 
     [Header("Controls legend")]
     public string[] controlsKeys = { "WASD", "SHIFT", "CTRL", "L-Click", "R-Click tap", "R-Click hold", "L-Click while aiming", "SPACE", "Y" };
@@ -45,13 +55,12 @@ public class MainMenu : MonoBehaviour
     {
         playerControlScripts = PlayerControls.FindAll();
 
-        // Show the main menu only on the very FIRST launch. After the game has started, any
-        // scene load (returning from the arena, a restart) drops straight into play.
-        // The ESC pause menu still works on its own.
-        bool alreadyStarted = PlayerProgressBetweenScenes.Instance != null &&
-                              PlayerProgressBetweenScenes.Instance.gameStarted;
-        if (showMainOnStart && !alreadyStarted) GoMain();
-        else BeginPlay();
+        if (kind == Kind.InGame) { BeginPlay(); return; }
+
+        // A menu scene has no game behind it to freeze.
+        IsOpen = true;
+        Time.timeScale = 1f;
+        FreeCursor(true);
     }
 
     void Update()
@@ -72,16 +81,6 @@ public class MainMenu : MonoBehaviour
     }
 
     // ---- state transitions ----
-    void GoMain()
-    {
-        state = State.Main;
-        IsOpen = true;
-        showControls = false;
-        Time.timeScale = 0f;
-        FreeCursor(true);
-        SetPlayerControl(false);
-    }
-
     void BeginPlay()
     {
         state = State.Playing;
@@ -103,17 +102,15 @@ public class MainMenu : MonoBehaviour
 
     void Resume() => BeginPlay();
 
-    // START begins a brand-new game: reset progress to full, then play.
+    // START and PLAY AGAIN both mean a brand-new run: wipe the carried-over progress first,
+    // or the second run starts with the first one's wounds.
     void StartNewGame()
     {
         if (PlayerProgressBetweenScenes.Instance != null)
-        {
             PlayerProgressBetweenScenes.Instance.ResetForNewGame();
-            PlayerProgressBetweenScenes.Instance.gameStarted = true;   // don't show the main menu again this run
-        }
-        if (GameManager.Instance != null)
-            GameManager.Instance.currentHP = GameManager.Instance.maxHP;
-        BeginPlay();
+
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(firstGameScene);
     }
 
     // Restart (pause menu and the death screen both use this) = a fresh run.
@@ -150,14 +147,36 @@ public class MainMenu : MonoBehaviour
     // ---- drawing ----
     void OnGUI()
     {
+        if (kind == Kind.TitleScene) { DrawMainMenu(); return; }
+        if (kind == Kind.VictoryScene) { DrawVictoryScreen(); return; }
+
         bool ended = GameManager.Instance != null && GameManager.Instance.HasEnded;
 
         // nothing to draw while actively playing
         if (!ended && state == State.Playing) return;
 
         if (ended) { DrawEndScreen(); return; }
-        if (state == State.Main) DrawMainMenu();
-        else if (state == State.Paused) DrawPauseMenu();
+        if (state == State.Paused) DrawPauseMenu();
+    }
+
+    void DrawVictoryScreen()
+    {
+        if (backgroundImage != null)
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), backgroundImage, ScaleMode.ScaleAndCrop);
+        Dim(0.55f);
+
+        var big = new GUIStyle(GUI.skin.label) { fontSize = 60, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+        big.normal.textColor = new Color(0.6f, 1f, 0.65f);
+        ShadowLabel(new Rect(0, Screen.height * 0.2f, Screen.width, 90), victoryTitle, big);
+
+        var sub = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Italic, fontSize = 20 };
+        sub.normal.textColor = new Color(0.75f, 0.8f, 0.85f);
+        GUI.Label(new Rect(0, Screen.height * 0.2f + 92, Screen.width, 30), victorySubtitle, sub);
+
+        float bw = 260, bh = 54, cx = Screen.width / 2f - bw / 2f, by = Screen.height * 0.55f;
+        var s = BtnStyle();
+        if (GUI.Button(new Rect(cx, by, bw, bh), "PLAY AGAIN", s)) StartNewGame();
+        if (GUI.Button(new Rect(cx, by + bh + 14, bw, bh), "QUIT", s)) Quit();
     }
 
     void DrawMainMenu()
@@ -166,9 +185,9 @@ public class MainMenu : MonoBehaviour
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), backgroundImage, ScaleMode.ScaleAndCrop);
         Dim(0.45f);
 
-        Title(title, subtitle);
-
         if (showControls) { DrawControlsPanel(() => showControls = false); return; }
+
+        Title(title, subtitle);
 
         float bw = 260, bh = 54, cx = Screen.width / 2f - bw / 2f, by = Screen.height * 0.52f;
         var s = BtnStyle();
@@ -180,9 +199,10 @@ public class MainMenu : MonoBehaviour
     void DrawPauseMenu()
     {
         Dim(0.6f);
-        Title("PAUSED", "");
 
         if (showControls) { DrawControlsPanel(() => showControls = false); return; }
+
+        Title("PAUSED", "");
 
         float bw = 260, bh = 50, cx = Screen.width / 2f - bw / 2f, by = Screen.height * 0.42f;
         var s = BtnStyle();
@@ -232,8 +252,14 @@ public class MainMenu : MonoBehaviour
     void DrawControlsPanel(System.Action onBack)
     {
         int n = Mathf.Min(controlsKeys.Length, controlsActions.Length);
-        float lineH = 30f, panelW = 460f, panelH = lineH * n + 90f;
-        float x = Screen.width / 2f - panelW / 2f, y = Screen.height * 0.40f;
+        float panelW = 460f;
+
+        // Nine lines is taller than a short game window, so the rows tighten until it fits
+        // and the whole panel sits in the middle rather than running off the bottom.
+        float lineH = Mathf.Clamp((Screen.height - 130f) / Mathf.Max(1, n), 18f, 30f);
+        float panelH = lineH * n + 90f;
+        float x = Screen.width / 2f - panelW / 2f;
+        float y = Mathf.Max(10f, Screen.height / 2f - panelH / 2f);
 
         GUI.color = new Color(0f, 0f, 0f, 0.6f);
         GUI.DrawTexture(new Rect(x, y, panelW, panelH), Texture2D.whiteTexture);

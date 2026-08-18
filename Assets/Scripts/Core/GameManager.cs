@@ -21,6 +21,10 @@ public class GameManager : MonoBehaviour
     [Header("Objective")]
     [TextArea] public string objectiveText = "Find the portal";
 
+    [Header("Ending")]
+    [Tooltip("Scene loaded on a win. Leave empty and the win overlay shows instead.")]
+    public string victoryScene = "";
+
     private bool isWin = false;
     private bool isLose = false;
     private float damageFlash = 0f;
@@ -122,6 +126,16 @@ public class GameManager : MonoBehaviour
     public void Win()
     {
         if (isWin || isLose) return;
+
+        // isWin stays false on this path on purpose: setting it would make the old win overlay
+        // flash for the one frame between here and the scene actually loading.
+        if (!string.IsNullOrEmpty(victoryScene))
+        {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(victoryScene);
+            return;
+        }
+
         isWin = true;
         FreezeGame();
     }

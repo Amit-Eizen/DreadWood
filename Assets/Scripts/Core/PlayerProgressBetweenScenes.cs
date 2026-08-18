@@ -39,10 +39,6 @@ public class PlayerProgressBetweenScenes : MonoBehaviour
     public Vector3 forestReturnPosition;
     public bool hasForestReturnPosition = false;
 
-    // True once the player pressed START. Lets the main menu appear only on the first launch,
-    // not every time the forest loads (e.g. returning from the arena). ESC-pause is separate.
-    public bool gameStarted = false;
-
     // Runs once, when Unity creates this object - doesn't run again on later scene loads, because this object is not deleted
     void Awake()
     {
