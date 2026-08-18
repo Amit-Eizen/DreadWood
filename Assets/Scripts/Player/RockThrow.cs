@@ -21,11 +21,27 @@ public class RockThrow : MonoBehaviour
     [Tooltip("Seconds between throws")]
     public float cooldown = 0.6f;
 
+    [Tooltip("Off: left click throws on its own, no aiming first. For the chase, where " +
+             "stopping to aim costs more ground than you have.")]
+    public bool requiresAiming = true;
+
+    [Tooltip("How far ahead to look for what you are aiming at")]
+    public float aimRange = 60f;
+
+    [Tooltip("Draw a dot in the middle of the screen while you can throw")]
+    public bool showCrosshair = true;
+
     private float lastThrow = -999f;
+    private PlayerAiming aiming;
+
+    void Awake()
+    {
+        aiming = GetComponent<PlayerAiming>();
+    }
 
     void Update()
     {
-        if (!PlayerAiming.IsAiming) return;
+        if (requiresAiming && !PlayerAiming.IsAiming) return;
         if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame) return;
         if (Time.time - lastThrow < cooldown) return;
         if (rockPrefab == null || throwPoint == null) return;
@@ -46,16 +62,45 @@ public class RockThrow : MonoBehaviour
         // Setting the velocity directly, rather than AddForce, keeps the throw the same
         // speed whatever the rock's mass is — the arc then comes from gravity alone.
         Rigidbody body = rock.GetComponent<Rigidbody>();
-        if (body != null)
-        {
-            Vector3 direction = (throwPoint.forward + Vector3.up * upwardArc).normalized;
-            body.linearVelocity = direction * throwSpeed;
-        }
+        if (body != null) body.linearVelocity = AimDirection() * throwSpeed;
 
         // Stop the rock colliding with the player who just threw it.
         Collider rockCollider = rock.GetComponent<Collider>();
         Collider playerCollider = GetComponent<Collider>();
         if (rockCollider != null && playerCollider != null)
             Physics.IgnoreCollision(rockCollider, playerCollider);
+    }
+
+    // Throw at whatever sits under the middle of the screen. The hand is off to the side of
+    // the third-person camera, so throwing straight out of it misses what you were looking at.
+    Vector3 AimDirection()
+    {
+        Camera view = aiming != null ? aiming.ActiveCamera : Camera.main;
+        if (view == null) return (throwPoint.forward + Vector3.up * upwardArc).normalized;
+
+        Ray screenCentre = view.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        Vector3 target = Physics.Raycast(screenCentre, out RaycastHit hit, aimRange,
+                                         ~0, QueryTriggerInteraction.Ignore)
+            ? hit.point
+            : screenCentre.GetPoint(aimRange);
+
+        Vector3 toTarget = (target - throwPoint.position).normalized;
+        return (toTarget + Vector3.up * upwardArc).normalized;
+    }
+
+    void OnGUI()
+    {
+        if (!showCrosshair) return;
+        if (requiresAiming && !PlayerAiming.IsAiming) return;
+
+        PlayerProgressBetweenScenes progress = PlayerProgressBetweenScenes.Instance;
+        bool loaded = progress == null || progress.rockAmmo > 0;
+
+        const float size = 6f;
+        Color previous = GUI.color;
+        GUI.color = loaded ? new Color(1f, 1f, 1f, 0.85f) : new Color(1f, 0.4f, 0.4f, 0.85f);
+        GUI.DrawTexture(new Rect(Screen.width / 2f - size / 2f, Screen.height / 2f - size / 2f,
+                                 size, size), Texture2D.whiteTexture);
+        GUI.color = previous;
     }
 }

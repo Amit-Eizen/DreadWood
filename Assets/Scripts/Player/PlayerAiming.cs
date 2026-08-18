@@ -20,6 +20,9 @@ public class PlayerAiming : MonoBehaviour
     // other scripts check this (PlayerCombat suppresses the axe, PlayerDodge skips the tap)
     public static bool IsAiming { get; private set; }
 
+    // Which camera the view comes from. RockThrow needs it to aim through the screen centre.
+    public Camera ActiveCamera => IsAiming ? firstPersonCamera : thirdPersonCamera;
+
     private float pressStartedAt = -1f;
 
     void Awake()

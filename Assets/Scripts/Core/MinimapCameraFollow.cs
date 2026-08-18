@@ -10,14 +10,7 @@ public class MinimapCameraFollow : MonoBehaviour
     void Start()
     {
         // Find the player once here, not every frame in Update.
-        if (player == null)
-        {
-            GameObject playerObject = GameObject.FindWithTag("Player");
-            if (playerObject != null)
-            {
-                player = playerObject.transform;
-            }
-        }
+        if (player == null) player = PlayerTeleport.Find();
     }
 
     // LateUpdate runs after the player has moved this frame, so the map doesn't lag behind.

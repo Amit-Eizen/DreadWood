@@ -1,5 +1,4 @@
 using UnityEngine;
-using StarterAssets;
 
 // A one-time tutorial card. Walk into the trigger — put it just outside the cabin door —
 // and the game holds while a panel explains what to do and which keys to use. The player
@@ -35,7 +34,7 @@ public class TutorialPopup : MonoBehaviour
     void OnTriggerEnter(Collider other)
     {
         if (alreadyShown || showing) return;
-        if (!other.CompareTag("Player") && other.GetComponentInParent<ThirdPersonController>() == null) return;
+        if (!PlayerTeleport.IsPlayer(other)) return;
 
         Show();
     }
@@ -51,41 +50,20 @@ public class TutorialPopup : MonoBehaviour
 
         // Freezing time stops movement, but the player could still swing or aim, and the
         // Starter Assets controller re-locks the cursor on focus — so switch them off.
-        playerScripts = FindPlayerScripts();
-        foreach (MonoBehaviour script in playerScripts)
-            if (script != null) script.enabled = false;
+        playerScripts = PlayerControls.FindAll();
+        PlayerControls.SetEnabled(playerScripts, false);
     }
 
     void Continue()
     {
         showing = false;
-
-        foreach (MonoBehaviour script in playerScripts)
-            if (script != null) script.enabled = true;
+        PlayerControls.SetEnabled(playerScripts, true);
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         Time.timeScale = 1f;
 
         gameObject.SetActive(false);   // it has done its job
-    }
-
-    static MonoBehaviour[] FindPlayerScripts()
-    {
-        ThirdPersonController controller = Object.FindFirstObjectByType<ThirdPersonController>();
-        if (controller == null) return new MonoBehaviour[0];
-
-        GameObject p = controller.gameObject;
-        return new MonoBehaviour[]
-        {
-            p.GetComponent<ThirdPersonController>(),
-            p.GetComponent<StarterAssetsInputs>(),
-            p.GetComponent<PlayerCombat>(),
-            p.GetComponent<PlayerDodge>(),
-            p.GetComponent<PlayerStealth>(),
-            p.GetComponent<PlayerAiming>(),
-            p.GetComponent<RockThrow>(),
-        };
     }
 
     void OnGUI()

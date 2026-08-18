@@ -37,7 +37,7 @@ public class ObjectiveLight : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (triggered || !IsPlayer(other)) return;
+        if (triggered || !PlayerTeleport.IsPlayer(other)) return;
 
         // The portal will not open until the objective is done, so the player cannot
         // simply walk past every zombie and skip straight to the end.
@@ -72,10 +72,5 @@ public class ObjectiveLight : MonoBehaviour
         PlayerProgressBetweenScenes progress = PlayerProgressBetweenScenes.Instance;
         if (progress == null) return 0;   // no progress object (testing this scene alone) — let it through
         return Mathf.Max(0, zombiesRequired - progress.ZombiesDefeated);
-    }
-
-    static bool IsPlayer(Collider c)
-    {
-        return c.CompareTag("Player") || c.gameObject.name == "PlayerArmature";
     }
 }

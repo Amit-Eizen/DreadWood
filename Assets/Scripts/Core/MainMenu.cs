@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using StarterAssets;
 
 // All of the game's menus in one overlay (no extra scene needed):
 //   * MAIN     — at launch: START / CONTROLS / QUIT  (game frozen behind it)
@@ -38,7 +37,7 @@ public class MainMenu : MonoBehaviour
 
     void Start()
     {
-        FindPlayerScripts();
+        playerControlScripts = PlayerControls.FindAll();
 
         // Show the main menu only on the very FIRST launch. After the game has started, any
         // scene load (returning from the arena, a restart) drops straight into play.
@@ -47,23 +46,6 @@ public class MainMenu : MonoBehaviour
                               PlayerProgressBetweenScenes.Instance.gameStarted;
         if (showMainOnStart && !alreadyStarted) GoMain();
         else BeginPlay();
-    }
-
-    void FindPlayerScripts()
-    {
-        ThirdPersonController tpc = Object.FindFirstObjectByType<ThirdPersonController>();
-        if (tpc == null) return;
-        GameObject p = tpc.gameObject;
-        playerControlScripts = new MonoBehaviour[]
-        {
-            p.GetComponent<ThirdPersonController>(),
-            p.GetComponent<StarterAssetsInputs>(),
-            p.GetComponent<PlayerCombat>(),
-            p.GetComponent<PlayerDodge>(),
-            p.GetComponent<PlayerStealth>(),
-            p.GetComponent<PlayerAiming>(),
-            p.GetComponent<RockThrow>(),
-        };
     }
 
     void Update()
@@ -153,9 +135,7 @@ public class MainMenu : MonoBehaviour
 
     void SetPlayerControl(bool on)
     {
-        if (playerControlScripts == null) return;
-        foreach (MonoBehaviour mb in playerControlScripts)
-            if (mb != null) mb.enabled = on;
+        PlayerControls.SetEnabled(playerControlScripts, on);
     }
 
     // ---- drawing ----

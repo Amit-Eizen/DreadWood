@@ -1,5 +1,4 @@
 using UnityEngine;
-using StarterAssets;
 
 // Shared behaviour for anything the player walks into and picks up: health, armour, rocks.
 // It handles the trigger, the idle spin and bob, the sound and effect, and removing itself.
@@ -56,8 +55,7 @@ public abstract class WorldPickup : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player") || other.GetComponentInParent<ThirdPersonController>() != null)
-            TryCollect();
+        if (PlayerTeleport.IsPlayer(other)) TryCollect();
     }
 
     void TryCollect()

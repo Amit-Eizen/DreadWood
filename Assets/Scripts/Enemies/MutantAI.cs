@@ -39,6 +39,11 @@ public class MutantAI : MonoBehaviour
     public float wanderSpeed = 1f;         // slow zombie shuffle
     public Vector2 pauseRange = new Vector2(1.5f, 4f); // idle pauses between strolls
 
+    [Header("Footing")]
+    [Tooltip("What counts as floor in scenes with no Terrain. Keep this to Ground and " +
+             "Obstacle only — on Everything the ray finds the enemy's own body.")]
+    public LayerMask groundLayers = 0;
+
     [Header("Boss mode")]
     [Tooltip("Always aggressive: never wanders — chases & attacks the player the moment it's active. Use for the boss mutant.")]
     public bool alwaysAggressive = false;
@@ -50,6 +55,7 @@ public class MutantAI : MonoBehaviour
     private bool alerted = false;
     private Terrain ground;
 
+    private float knockedOutUntil = 0f;
     private Vector3 home;
     private Vector3 wanderTarget;
     private bool hasWanderTarget = false;
@@ -58,6 +64,13 @@ public class MutantAI : MonoBehaviour
     // which animator params actually exist (the boss's MutantController lacks some) —
     // checked so we never spam "parameter does not exist" warnings
     private bool hasWander, hasChasing, hasAttack, hasDie;
+
+    // Sensible default the moment the component is added — on Everything the footing ray
+    // would find the enemy's own body and it would climb itself.
+    void Reset()
+    {
+        groundLayers = LayerMask.GetMask("Ground", "Obstacle");
+    }
 
     void Start()
     {
@@ -73,12 +86,7 @@ public class MutantAI : MonoBehaviour
             else if (p.name == "die") hasDie = true;
         }
 
-        if (player == null)
-        {
-            GameObject p = GameObject.FindWithTag("Player");
-            if (p == null) p = GameObject.Find("PlayerArmature");
-            if (p != null) player = p.transform;
-        }
+        if (player == null) player = PlayerTeleport.Find();
     }
 
     void Update()
@@ -87,6 +95,13 @@ public class MutantAI : MonoBehaviour
         if (GameManager.Instance != null && GameManager.Instance.currentHP <= 0)
         {
             SetGait(false, false);
+            return;
+        }
+
+        if (IsKnockedOut)
+        {
+            SetGait(false, false);
+            SnapToGround();
             return;
         }
 
@@ -107,6 +122,17 @@ public class MutantAI : MonoBehaviour
 
         KeepApartFromOtherEnemies();
         SnapToGround();
+    }
+
+    public bool IsKnockedOut => Time.time < knockedOutUntil;
+
+    // Floored for a few seconds: no chasing, no attacking. Pending attacks are cancelled,
+    // because an Invoke already scheduled still lands while the enemy is meant to be down.
+    public void KnockOut(float seconds)
+    {
+        CancelInvoke(nameof(ApplyAttackDamage));
+        knockedOutUntil = Time.time + seconds;
+        attackHoldUntil = 0f;
     }
 
     bool CanSeePlayer()
@@ -242,11 +268,23 @@ public class MutantAI : MonoBehaviour
         }
     }
 
+    // The forest has a Terrain to read heights from. The chase corridor is built from boxes
+    // and has none, so there we look for the floor with a ray straight down instead.
     void SnapToGround()
     {
-        if (ground == null) return;
         Vector3 p = transform.position;
-        p.y = ground.SampleHeight(p) + ground.transform.position.y;
+
+        if (ground != null)
+        {
+            p.y = ground.SampleHeight(p) + ground.transform.position.y;
+        }
+        else if (Physics.Raycast(p + Vector3.up * 3f, Vector3.down, out RaycastHit floor,
+                                 12f, groundLayers, QueryTriggerInteraction.Ignore))
+        {
+            p.y = floor.point.y;
+        }
+        else return;
+
         transform.position = p;
     }
 

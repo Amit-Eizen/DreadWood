@@ -26,8 +26,7 @@ public class MinimapEdgeMarker : MonoBehaviour
     {
         if (target == null && transform.parent != null) target = transform.parent;
 
-        GameObject found = GameObject.FindWithTag("Player");
-        if (found != null) player = found.transform;
+        player = PlayerTeleport.Find();
 
         if (minimapCamera == null)
         {
